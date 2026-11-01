@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBall, POCKETS } from '../js/physics.js';
-import { predict, cutShot, aimForThickness, aimForPocket, thicknessFraction, cutFromThickness } from '../js/aim.js';
+import { predict, cutShot, aimForOffset, aimForThickness, aimForPocket, thicknessFraction, cutFromThickness } from '../js/aim.js';
 
 const setup = (cue, obj) => { const c = createBall(0, cue.x, cue.y); const o = createBall(1, obj.x, obj.y); return [c, o]; };
 const shot = (angle) => ({ angle, speed: 1.5, a: 0, b: 0 });
@@ -36,4 +36,16 @@ test('aimForPocket sends the object ball into the side pocket', () => {
     const { info } = predict([c, o], { ...shot(r.angle), speed: 2.5 }, 4);
     assert.equal(info.pocketOf[1], idx);
   }
+});
+
+test('aimForOffset: signed lateral offset maps to thickness and side', async () => {
+  const { R } = await import('../js/physics.js');
+  const [c, o] = setup({ x: -0.8, y: -0.1 }, { x: 0.2, y: 0.05 });
+  for (const [s, t] of [[0, 1], [R, 0.5], [-R, 0.5], [1.98 * R, 0.01]]) {
+    const { info } = predict([c, o], shot(aimForOffset(c, o, s)), 1);
+    assert.ok(info.hit);
+    assert.ok(Math.abs(info.thickness - t) < 0.006, `s=${s} got ${info.thickness}`);
+    if (s !== 0) assert.equal(Math.sign(info.cut), Math.sign(s));
+  }
+  assert.equal(aimForOffset(createBall(0, 0, 0), createBall(1, 0.05, 0), 0), null);
 });

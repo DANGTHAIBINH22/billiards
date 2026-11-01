@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { R, TABLE, createBall, cloneBalls, strike, stepWorld, isMoving, POCKETS } from './physics.js';
-import { predict, thicknessLabel, thicknessFraction, aimForThickness, aimForPocket, cutShot } from './aim.js';
+import { predict, thicknessLabel, thicknessFraction, aimForOffset, aimForThickness, aimForPocket, cutShot } from './aim.js';
 import { buildTable } from './table.js';
 import { buildRoom } from './env.js';
 import { makeBallMesh, syncBall, BALL_COLORS } from './balls.js';
@@ -42,6 +42,7 @@ const state = {
   aimBall: null,
   aimPocket: null, // { idx, angle } while the angle still comes from the pocket button
   fps: { dist: 1.15, pitch: 0 },
+  cheekCam: { dist: 0.85, h: 0.1, ghostCue: true }, // eye on the aim line behind the cue ball
   events: [],
   simT: 0,
   shotCtx: null,
@@ -152,16 +153,36 @@ function setView(v) {
   state.view = v;
   document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
   controls.enabled = v === 'persp' || v === 'top';
-  const fov = v === 'fps' ? 62 : 42;
+  const fov = v === 'fps' ? 62 : v === 'cheek' ? 20 : 42;
   if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
   if (v === 'persp' || v === 'top') frameView(v);
+  drag = null;
+  applyCueGhost();
+  state.dirty = true;
+}
+
+/** Make the cue ball see-through in the cheek view so the overlap with the object ball is readable. */
+function applyCueGhost() {
+  const on = state.view === 'cheek' && state.cheekCam.ghostCue;
+  const m = meshes[0].material;
+  if (m.transparent === on) return;
+  m.transparent = on;
+  m.opacity = on ? 0.4 : 1;
+  m.depthWrite = !on;
+  m.needsUpdate = true;
 }
 
 const camGoal = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 function updateFollowCamera(dt) {
   const c = state.balls[0];
   const d = new THREE.Vector3(Math.cos(state.shot.angle), 0, -Math.sin(state.shot.angle));
-  if (state.view === 'cue') {
+  if (state.view === 'cheek') {
+    // Eye on the aim line, just above the cue ball, looking at the object ball's depth: the cue ball overlaps it like in real life.
+    const t = cheekTarget();
+    const along = t ? Math.max(0.3, (t.x - c.x) * Math.cos(state.shot.angle) + (t.y - c.y) * Math.sin(state.shot.angle)) : 0.8;
+    camGoal.pos.set(c.x, 0, -c.y).addScaledVector(d, -state.cheekCam.dist).setY(state.cheekCam.h);
+    camGoal.look.set(c.x, R, -c.y).addScaledVector(d, along);
+  } else if (state.view === 'cue') {
     camGoal.pos.set(c.x, 0, -c.y).addScaledVector(d, -0.62).setY(0.34);
     camGoal.look.set(c.x, 0.02, -c.y).addScaledVector(d, 0.7);
   } else {
@@ -169,7 +190,7 @@ function updateFollowCamera(dt) {
     camGoal.pos.set(c.x, 0, -c.y).addScaledVector(d, -state.fps.dist).setY(0.82);
     camGoal.look.set(c.x, 0, -c.y).addScaledVector(d, 0.55 - state.fps.pitch * 0.5);
   }
-  const k = 1 - Math.exp(-dt * 9);
+  const k = 1 - Math.exp(-dt * (state.view === 'cheek' ? 25 : 9)); // direct manipulation must not lag
   camera.position.lerp(camGoal.pos, k);
   controls.target.lerp(camGoal.look, k);
   camera.lookAt(controls.target);
@@ -341,10 +362,35 @@ function drawOverlay(result) {
     }
   }
 
+  if (state.view === 'cheek' && info.hit && state.show.cheek) drawCheekRuler(info);
+
   for (const e of sim.events) {
     if (e.type !== 'pocket') continue;
     if (!full && e.id !== info.object?.id) continue;
     overlay.add(ribbon(arcPoints(e.x, e.y, 0.05, 0, Math.PI * 2, 32), { width: 0.006, color: e.id === 0 ? '#ff7a7a' : '#6be3a0', y: 0.006 }));
+  }
+}
+
+/**
+ * Ruler across the object ball (seen from the eye on the aim line): ticks at 0, 1/4 .. 1 of its width measured from
+ * the edge nearest the cue path. The cue ball's far edge sits on the tick equal to the thickness.
+ */
+function drawCheekRuler(info) {
+  const c = state.balls[0];
+  const a = state.shot.angle;
+  const lateral = Math.cos(a) * (info.object.y - c.y) - Math.sin(a) * (info.object.x - c.x);
+  const along = Math.cos(a) * (info.object.x - c.x) + Math.sin(a) * (info.object.y - c.y);
+  const side = lateral >= 0 ? 1 : -1;
+  const near = Math.round(info.thickness * 4); // tick the cue edge is closest to
+  const geo = new THREE.BoxGeometry(0.0016, 2 * R + 0.014, 0.0016);
+  for (let k = 0; k <= 4; k++) {
+    const lat = lateral - side * R + side * 2 * R * (k / 4); // from the edge facing the path, towards the far edge
+    const x = c.x + Math.cos(a) * along - Math.sin(a) * lat;
+    const y = c.y + Math.sin(a) * along + Math.cos(a) * lat;
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: k === near ? '#ff4d3d' : '#f2c14e', toneMapped: false, depthTest: false }));
+    m.position.set(x, R, -y);
+    m.renderOrder = 11;
+    overlay.add(m);
   }
 }
 
@@ -364,6 +410,15 @@ function updateCutLabel() {
   const text = cutText(info);
   if (!info?.hit || state.phase !== 'aim' || state.lines === 'off' || !text) {
     label.hidden = true;
+    return;
+  }
+  if (state.view === 'cheek') {
+    label.hidden = false;
+    label.textContent = text;
+    label.style.left = `${avail.w / 2}px`;
+    // On phones the HUD spans the width: sit just below it instead of over it.
+    const hudBottom = innerWidth <= 760 && !$('hud').hidden ? $('hud').getBoundingClientRect().bottom + 8 : 0;
+    label.style.top = `${Math.max(56, hudBottom)}px`;
     return;
   }
   const mid = info.inDir + wrapPi(info.lineDir - info.inDir) / 2;
@@ -437,6 +492,24 @@ function cheekAt(p) {
   state.aimBall = t.id;
   state.aimPocket = null;
   setAngle(Math.atan2(t.y + 2 * R * uy - c.y, t.x + 2 * R * ux - c.x));
+}
+
+/** Drag in the cheek view: horizontal moves the object ball across the cue ball (changes the thickness), vertical lifts the eye. */
+function cheekViewDrag(dx, dy) {
+  const t = cheekTarget();
+  const c = state.balls[0];
+  const cam = state.cheekCam;
+  cam.h = Math.max(0.05, Math.min(0.45, cam.h + dy * 0.0008));
+  if (!t) { setAngle(state.shot.angle - dx * 0.0015); return; }
+  const a = state.shot.angle;
+  const lateral = Math.cos(a) * (t.y - c.y) - Math.sin(a) * (t.x - c.x); // + = object ball left of the path
+  const along = Math.cos(a) * (t.x - c.x) + Math.sin(a) * (t.y - c.y);
+  const metresPerPx = (2 * (cam.dist + along) * Math.tan((camera.fov * Math.PI) / 360)) / innerHeight;
+  const next = aimForOffset(c, t, lateral - dx * metresPerPx); // the ball follows the finger
+  if (next === null) return;
+  state.aimBall = t.id;
+  state.aimPocket = null;
+  setAngle(next);
 }
 
 function syncCheekUI(info) {
@@ -754,6 +827,7 @@ el.addEventListener('pointerdown', (e) => {
     if (near) { near.active = false; syncMeshes(); state.dirty = true; renderAddChips(); }
     return;
   }
+  if (state.view === 'cheek' && (g || state.tool === 'aim')) { drag = { kind: 'cheekView', x: e.clientX, y: e.clientY }; return; }
   if (state.cheek && p && (g || state.tool === 'aim')) {
     const near = nearestBall(p, R * 1.6, false);
     if (near) state.aimBall = near.id;
@@ -773,6 +847,12 @@ el.addEventListener('pointermove', (e) => {
     normalizeAngle();
     syncUI();
     state.dirty = true;
+    return;
+  }
+  if (drag.kind === 'cheekView') {
+    cheekViewDrag(e.clientX - drag.x, e.clientY - drag.y);
+    drag.x = e.clientX;
+    drag.y = e.clientY;
     return;
   }
   const p = tablePoint(e);
@@ -835,6 +915,7 @@ const setShow = (key, on) => {
   $(key === 'deg' ? 'showDeg' : 'showCheek').checked = on;
   state.dirty = true;
 };
+$('ghostCue').addEventListener('change', (e) => { state.cheekCam.ghostCue = e.target.checked; applyCueGhost(); });
 $('showDeg').addEventListener('change', (e) => setShow('deg', e.target.checked));
 $('showCheek').addEventListener('change', (e) => setShow('cheek', e.target.checked));
 $('thickChips').addEventListener('click', (e) => { const t = e.target.closest('button')?.dataset.t; if (t) applyThickness(Number(t)); });
@@ -876,7 +957,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyG') setShow('deg', !state.show.deg);
   else if (e.code === 'KeyM') setShow('cheek', !state.show.cheek);
   else if (e.code === 'KeyL') setLines({ off: 'aim', aim: 'full', full: 'off' }[state.lines]);
-  else if (['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(e.code)) setView(['persp', 'top', 'cue', 'fps'][Number(e.code.slice(5)) - 1]);
+  else if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(e.code)) setView(['persp', 'top', 'cue', 'fps', 'cheek'][Number(e.code.slice(5)) - 1]);
   else keys.add(e.code);
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
@@ -1098,11 +1179,17 @@ function tick() {
     runSimulation(dt);
   }
 
-  if (state.view === 'cue' || state.view === 'fps') {
+  if (state.view === 'cue' || state.view === 'fps' || state.view === 'cheek') {
     if (keys.has('KeyA')) { state.shot.angle += dt * 0.35; state.dirty = true; syncUI(); }
     if (keys.has('KeyD')) { state.shot.angle -= dt * 0.35; state.dirty = true; syncUI(); }
-    if (keys.has('KeyW')) state.fps.dist = Math.max(0.55, state.fps.dist - dt * 0.7);
-    if (keys.has('KeyS')) state.fps.dist = Math.min(1.9, state.fps.dist + dt * 0.7);
+    const cc = state.cheekCam;
+    if (state.view === 'cheek') {
+      if (keys.has('KeyW')) cc.dist = Math.max(0.3, cc.dist - dt * 0.4);
+      if (keys.has('KeyS')) cc.dist = Math.min(1.4, cc.dist + dt * 0.4);
+    } else {
+      if (keys.has('KeyW')) state.fps.dist = Math.max(0.55, state.fps.dist - dt * 0.7);
+      if (keys.has('KeyS')) state.fps.dist = Math.min(1.9, state.fps.dist + dt * 0.7);
+    }
     normalizeAngle();
     updateFollowCamera(dt);
   } else controls.update();
@@ -1112,6 +1199,7 @@ function tick() {
   // The pendant lamp hangs between a high camera and the table: hide it then.
   const lampVisible = camera.position.y < room.lampY - 0.1;
   for (const m of room.lampParts) m.visible = lampVisible;
+  if (state.view === 'cheek') normalCue.visible = jumpCue.visible = false; // the cue would pass through the eye
   updateCutLabel();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);

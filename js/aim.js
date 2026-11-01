@@ -106,16 +106,24 @@ export function thicknessLabel(t) {
 export const cutFromThickness = (t) => Math.asin(Math.max(0, Math.min(1, 1 - t))) * DEG;
 
 /**
+ * Aim angle for a signed lateral offset `s` of the object ball's centre from the cue ball's path
+ * (+ = object ball to the left of the path). |s| = 0 is a full-ball hit, |s| = 2R only grazes it.
+ */
+export function aimForOffset(cue, target, s) {
+  const dx = target.x - cue.x;
+  const dy = target.y - cue.y;
+  const d = Math.hypot(dx, dy);
+  if (d <= 2 * R + 0.01) return null;
+  const lim = 1.98 * R;
+  return Math.atan2(dy, dx) - Math.asin(Math.max(-lim, Math.min(lim, s)) / d);
+}
+
+/**
  * Aim angle that hits `target` with overlap `t` (1 = full ball, 0 = edge).
  * side +1 sends the object ball to the left of the cue's path (same sign as `info.cut`).
  */
 export function aimForThickness(cue, target, t, side) {
-  const dx = target.x - cue.x;
-  const dy = target.y - cue.y;
-  const d = Math.hypot(dx, dy);
-  const lateral = 2 * R * Math.sin(Math.asin(Math.max(0, Math.min(1, 1 - t))));
-  if (d <= lateral) return null;
-  return Math.atan2(dy, dx) - side * Math.asin(lateral / d);
+  return aimForOffset(cue, target, side * 2 * R * (1 - Math.max(0, Math.min(1, t))));
 }
 
 // Perpendicular distance from point k to the infinite line through a -> b.
