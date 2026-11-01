@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="data:,">
+  <title>Bida 3D Pro</title>
+  <meta name="description" content="Bida 3D: luyện góc cắt, áp phê, gậy nhảy; chơi 2 người luật WPA 8/9/10 bi.">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <!-- Scoreboard (match mode) -->
+  <section id="score" class="card" hidden aria-live="polite">
+    <div class="players">
+      <div class="pl" id="pl0"><b class="nm"></b><span class="grp"></span><span class="pots"></span><span class="foul"></span></div>
+      <div class="pl" id="pl1"><b class="nm"></b><span class="grp"></span><span class="pots"></span><span class="foul"></span></div>
+    </div>
+    <p id="scoreMsg"></p>
+  </section>
+
+  <section id="hud" class="card" aria-live="polite">
+    <h2>Phân tích cú đánh</h2>
+    <dl id="metrics"></dl>
+    <p id="verdict"></p>
+    <p id="tips"></p>
+  </section>
+
+  <div id="cutLabel" class="tag" hidden></div>
+  <div id="toast" role="status"></div>
+  <div id="hint">Kéo chuột trái: ngắm · Chuột phải: xoay camera · Lăn chuột: zoom · Space: bắn · L: đường bi · 1-4: góc nhìn</div>
+
+  <aside id="panel" class="card">
+    <div class="topbar">
+      <button id="menuBtn">☰ Ván mới</button>
+      <div class="seg" id="views" role="group" aria-label="Góc nhìn">
+        <button data-view="persp" class="on" title="Phím 1">3D</button>
+        <button data-view="top" title="Phím 2">Trên</button>
+        <button data-view="cue" title="Phím 3">Sau cơ</button>
+        <button data-view="fps" title="Phím 4">Đứng chơi</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>Điểm chạm đầu cơ (áp phê)</h3>
+      <div class="tipRow">
+        <canvas id="tipPad" width="160" height="160" aria-label="Chọn điểm chạm trên bi cái"></canvas>
+        <div class="tipSide">
+          <div id="tipReadout" class="readout"></div>
+          <div class="chips" id="tipPresets">
+            <button data-tip="0,0">Giữa</button>
+            <button data-tip="0,0.4">Đẩy</button>
+            <button data-tip="0,-0.4">Kéo</button>
+            <button data-tip="-0.4,0">Trái</button>
+            <button data-tip="0.4,0">Phải</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <label for="angle">Hướng cơ <output id="angleOut"></output></label>
+      <div class="row">
+        <button id="angleMinus" aria-label="Giảm 0.1 độ">−</button>
+        <input id="angle" type="range" min="-180" max="180" step="0.05" value="0">
+        <button id="anglePlus" aria-label="Tăng 0.1 độ">+</button>
+      </div>
+      <label for="power">Lực đánh <output id="powerOut"></output></label>
+      <input id="power" type="range" min="1" max="100" step="1" value="35">
+      <label class="check"><input id="jumpCue" type="checkbox"> Gậy nhảy (jump cue)</label>
+      <div id="jumpBox" hidden>
+        <label for="elev">Độ nâng gậy <output id="elevOut"></output></label>
+        <input id="elev" type="range" min="10" max="60" step="1" value="35">
+      </div>
+    </div>
+
+    <div class="group" id="cheekGroup">
+      <h3>Ngắm má bi</h3>
+      <label class="check"><input id="cheekMode" type="checkbox"> Kéo má bi trên bàn (phím T)</label>
+      <label class="check"><input id="showDeg" type="checkbox" checked> Hiện góc (độ) trên bi mục tiêu (phím G)</label>
+      <label class="check"><input id="showCheek" type="checkbox" checked> Hiện má bi trên bi mục tiêu (phím M)</label>
+      <div id="cheekReadout" class="readout"></div>
+      <div class="chips" id="thickChips">
+        <button data-t="1">1/1</button><button data-t="0.75">3/4</button><button data-t="0.5">1/2</button>
+        <button data-t="0.25">1/4</button><button data-t="0.125">1/8</button>
+      </div>
+      <div class="seg" id="thickSide" role="group" aria-label="Hướng bi mục tiêu">
+        <button data-side="1">Bi đi sang trái</button>
+        <button data-side="-1">Bi đi sang phải</button>
+      </div>
+      <label for="thick">Má bi <output id="thickOut"></output></label>
+      <input id="thick" type="range" min="3" max="100" step="1" value="50">
+      <h3>Ngắm bi mục tiêu vào lỗ</h3>
+      <div class="pockets" id="aimPockets">
+        <button data-pocket="2">Góc T-trái</button><button data-pocket="5">Giữa trên</button><button data-pocket="3">Góc T-phải</button>
+        <button data-pocket="0">Góc D-trái</button><button data-pocket="4">Giữa dưới</button><button data-pocket="1">Góc D-phải</button>
+      </div>
+      <p class="note">Góc ↔ má: 0° = 1/1 · 15° ≈ 3/4 · 30° = 1/2 · 49° ≈ 1/4 · 60° ≈ 1/8</p>
+    </div>
+
+    <div class="group">
+      <h3>Đường bi</h3>
+      <div class="seg" id="lines" role="group">
+        <button data-lines="off">Tắt</button>
+        <button data-lines="aim" class="on">Đường ngắm</button>
+        <button data-lines="full">Đầy đủ</button>
+      </div>
+      <label for="horizon">Độ dài dự đoán <output id="horizonOut"></output></label>
+      <input id="horizon" type="range" min="0.3" max="6" step="0.1" value="2.5">
+    </div>
+
+    <div class="group" id="callGroup" hidden>
+      <h3>Gọi lỗ <span id="callInfo"></span></h3>
+      <div class="pockets" id="pocketBtns">
+        <button data-pocket="2">Góc T-trái</button><button data-pocket="5">Giữa trên</button><button data-pocket="3">Góc T-phải</button>
+        <button data-pocket="0">Góc D-trái</button><button data-pocket="4">Giữa dưới</button><button data-pocket="1">Góc D-phải</button>
+      </div>
+    </div>
+
+    <div class="group" id="practiceGroup">
+      <h3>Luyện tập · Xếp bi</h3>
+      <div class="chips" id="presets">
+        <button data-preset="rack15">15 bi</button>
+        <button data-preset="rack9low">9 bi thấp</button>
+        <button data-preset="rack9high">9 bi cao</button>
+        <button data-preset="rack10">10 bi</button>
+        <button data-preset="straight">Thẳng</button>
+        <button data-preset="cut15">Cắt 15°</button>
+        <button data-preset="cut30">Cắt 30°</button>
+        <button data-preset="cut45">Cắt 45°</button>
+        <button data-preset="empty">Bàn trống</button>
+      </div>
+      <h3>Công cụ bi</h3>
+      <div class="seg" id="tools" role="group">
+        <button data-tool="aim" class="on">Ngắm</button>
+        <button data-tool="move">Di chuyển</button>
+        <button data-tool="add">Thêm bi</button>
+        <button data-tool="remove">Nhặt bi</button>
+      </div>
+      <div class="chips" id="addChips" hidden></div>
+    </div>
+
+    <div class="group" id="pushGroup" hidden>
+      <label class="check"><input id="pushOut" type="checkbox"> Push-out (9-ball, cú sau phá)</label>
+    </div>
+
+    <div class="actions">
+      <button id="shoot" class="primary">Bắn (Space)</button>
+      <button id="undo">Hoàn tác</button>
+      <button id="reset">Đặt lại</button>
+    </div>
+    <label class="check"><input id="slowmo" type="checkbox"> Quay chậm ¼×</label>
+  </aside>
+
+  <button id="panelToggle" aria-expanded="true" aria-controls="panel">Điều khiển</button>
+
+  <!-- New game -->
+  <dialog id="menu">
+    <form method="dialog" id="menuForm">
+      <h2>Bida 3D Pro</h2>
+      <fieldset>
+        <legend>Chế độ</legend>
+        <label><input type="radio" name="mode" value="practice" checked> Luyện tập</label>
+        <label><input type="radio" name="mode" value="match"> Ván 2 người (luật WPA)</label>
+      </fieldset>
+      <fieldset id="ruleSet">
+        <legend>Môn chơi</legend>
+        <label><input type="radio" name="kind" value="8" checked> 8-ball (trơn/sọc)</label>
+        <label><input type="radio" name="kind" value="9"> 9-ball</label>
+        <label><input type="radio" name="kind" value="10"> 10-ball</label>
+      </fieldset>
+      <fieldset id="rack9" hidden>
+        <legend>Khuôn 9 bi</legend>
+        <label><input type="radio" name="rack9" value="9low" checked> Xếp thấp (bi 1 trên foot spot)</label>
+        <label><input type="radio" name="rack9" value="9high"> Xếp cao (bi 9 trên foot spot)</label>
+      </fieldset>
+      <div class="names" id="names" hidden>
+        <input name="p0" placeholder="Tên người chơi 1" maxlength="18" value="Người chơi 1">
+        <input name="p1" placeholder="Tên người chơi 2" maxlength="18" value="Người chơi 2">
+      </div>
+      <button class="primary" value="start">Bắt đầu</button>
+    </form>
+  </dialog>
+
+  <!-- Binary decisions (re-rack / push-out) -->
+  <dialog id="choice">
+    <form method="dialog">
+      <h2 id="choiceTitle"></h2>
+      <p id="choiceText"></p>
+      <div class="actions two">
+        <button value="a" class="primary" id="choiceA"></button>
+        <button value="b" id="choiceB"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="winner" class="card" hidden>
+    <h2 id="winnerText"></h2>
+    <button id="winnerBtn" class="primary">Ván mới</button>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

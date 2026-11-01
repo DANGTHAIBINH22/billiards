@@ -1,0 +1,11 @@
+services:
+  billiards:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: billiards-app
+    restart: always
+    ports:
+      - "8081:80" # 3000 is taken by invest-smart on the same VM
+    environment:
+      - TZ=Asia/Ho_Chi_Minh

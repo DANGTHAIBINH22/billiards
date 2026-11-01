@@ -1,0 +1,53 @@
+name: Auto Deploy Billiards to Azure VM
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: azure-vm-deploy-billiards
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run unit tests
+        run: node --test tests/*.test.js
+
+  deploy-and-run:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same VM and secrets as the invest project. The VM needs no GitHub credentials: the runner ships the files.
+      - name: Copy site files to the VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "index.html,css,js,vendor,Dockerfile,nginx.conf,docker-compose.yml"
+          target: /home/azureuser/billiards
+          rm: true
+
+      - name: Build image and restart container
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/azureuser/billiards
+            sudo docker compose down || true
+            sudo docker compose up -d --build
+            sleep 3
+            sudo docker compose ps
+            curl -fsS -o /dev/null http://127.0.0.1:8081/ && echo "Billiards OK on :8081"
