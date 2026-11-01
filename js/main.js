@@ -417,7 +417,7 @@ function updateCutLabel() {
     label.textContent = text;
     label.style.left = `${avail.w / 2}px`;
     // On phones the HUD spans the width: sit just below it instead of over it.
-    const hudBottom = innerWidth <= 760 && !$('hud').hidden ? $('hud').getBoundingClientRect().bottom + 8 : 0;
+    const hudBottom = innerWidth <= 760 && !$('hud').hidden ? $('hud').getBoundingClientRect().bottom + 22 : 0; // label is centred on its top edge
     label.style.top = `${Math.max(56, hudBottom)}px`;
     return;
   }
