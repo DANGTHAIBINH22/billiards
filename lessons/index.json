@@ -6,11 +6,17 @@
       "lessons": [
         {
           "id": "thang-co-ban",
-          "title": "Đánh thẳng vào lỗ góc"
+          "title": "Đánh thẳng vào lỗ góc",
+          "summary": "Ngắm thẳng qua tâm bi mục tiêu vào lỗ góc.",
+          "intro": "Cú thẳng là nền của mọi cú đánh: bi cái, bi mục tiêu và lỗ nằm trên một đường. Đường ngắm phải đi qua tâm bi mục tiêu; lệch một chút ở bi cái sẽ thành lệch nhiều ở lỗ. Bài này tập đặt hướng cơ cho đúng đường đó và đánh vào giữa bi cái.",
+          "tier": "free"
         },
         {
           "id": "cat-30",
-          "title": "Cắt 30° vào lỗ góc"
+          "title": "Cắt 30° vào lỗ góc",
+          "summary": "Ngắm lệch tâm để cắt bi mục tiêu 30° vào lỗ.",
+          "intro": "Khi bi mục tiêu không thẳng hàng với lỗ, bi cái phải chạm vào một bên má của nó. Góc cắt 30° ứng với chạm khoảng nửa bi: mép bi cái đi qua tâm bi mục tiêu. Bảng phân tích hiện góc cắt và má bi để bạn đối chiếu trong lúc ngắm.",
+          "tier": "free"
         }
       ]
     },
@@ -20,19 +26,31 @@
       "lessons": [
         {
           "id": "dung-bi-tranh-roi-lo",
-          "title": "Đứng bi để bi cái không rơi theo"
+          "title": "Đứng bi để bi cái không rơi theo",
+          "summary": "Hạ đầu cơ để bi cái đứng lại thay vì lăn theo vào lỗ.",
+          "intro": "Bi cái đang lăn tới mang xoáy tiến, nên sau khi chạm thẳng nó vẫn lăn theo bi mục tiêu. Đánh thấp hơn tâm một chút làm bi cái tới nơi ở trạng thái trượt, không xoáy dọc; nó trao hết tốc độ rồi đứng lại. Đây là cách đơn giản nhất để không mất bi cái khi bi mục tiêu nằm gần lỗ.",
+          "tier": "free"
         },
         {
           "id": "dung-bi",
-          "title": "Dừng bi tại chỗ (stop shot)"
+          "title": "Dừng bi tại chỗ (stop shot)",
+          "summary": "Cho bi cái dừng đúng chỗ bi mục tiêu vừa rời đi.",
+          "intro": "Đứng bi là cú mà bi cái chạm thẳng rồi dừng tại chỗ. Bi cái càng xa bi mục tiêu thì càng kịp chuyển sang lăn trên đường đi, nên càng phải đánh thấp hơn để bù. Bài này đặt bi cái khá xa để bạn thấy rõ: đánh giữa bi thì trôi, hạ đầu cơ thì đứng.",
+          "tier": "free"
         },
         {
           "id": "tro-ve",
-          "title": "Trô: kéo bi cái lùi về"
+          "title": "Trô: kéo bi cái lùi về",
+          "summary": "Đánh dưới tâm để bi cái lùi lại sau va chạm.",
+          "intro": "Trô (kéo) là đánh dưới tâm bi cái để tạo xoáy ngược. Nếu xoáy ngược còn giữ được tới lúc chạm bi mục tiêu, bi cái sẽ lùi về. Lượng trô chỉ phụ thuộc hai thứ: đánh thấp bao nhiêu và đầu gậy nhanh bao nhiêu lúc chạm. Hạ đầu cơ thêm một chút đã làm bi cái lùi xa hơn nhiều.",
+          "tier": "free"
         },
         {
           "id": "cule-chay-theo",
-          "title": "Cule: cho bi cái chạy theo"
+          "title": "Cule: cho bi cái chạy theo",
+          "summary": "Đánh trên tâm để bi cái lăn tiếp sau va chạm.",
+          "intro": "Cule (đẩy) là đánh trên tâm để bi cái mang xoáy tiến. Sau khi chạm bi mục tiêu, xoáy tiến kéo bi cái lăn tiếp về phía trước. Muốn bi cái chạy xa hơn thì nâng đầu cơ lên, không cần đánh mạnh hơn; lực nhẹ giữ cho cú đánh dễ kiểm soát.",
+          "tier": "free"
         }
       ]
     },
@@ -42,7 +60,10 @@
       "lessons": [
         {
           "id": "ap-phe-bat-bang",
-          "title": "Áp phê đổi hướng bật băng"
+          "title": "Áp phê đổi hướng bật băng",
+          "summary": "Dùng áp phê để đổi hướng bi cái sau khi chạm băng.",
+          "intro": "Áp phê là đánh lệch sang trái hoặc phải tâm bi cái để tạo xoáy ngang. Trên đường tới băng, áp phê gần như không làm đổi hướng đi; nó chỉ phát huy khi bi cái chạm băng: áp phê phải làm bi bật lệch sang phải, áp phê trái thì sang trái. Bi cái vào băng càng vuông góc, tác dụng càng mạnh.",
+          "tier": "free"
         }
       ]
     },
@@ -52,7 +73,10 @@
       "lessons": [
         {
           "id": "quy-tac-45-do",
-          "title": "Quy tắc 45°: hai băng về giữa bàn"
+          "title": "Quy tắc 45°: hai băng về giữa bàn",
+          "summary": "Hai băng đưa bi cái trở về giữa bàn.",
+          "intro": "Giữa bàn là vị trí dễ đánh tiếp nhất. Quy tắc 45°: nếu bi cái vào băng ngắn ở góc khoảng 45°, nó sẽ bật sang băng dài rồi đi ngang qua khu vực giữa bàn. Khi đường đi đã đúng, việc còn lại là lực: đủ để qua hai băng và dừng ở giữa.",
+          "tier": "free"
         }
       ]
     },
@@ -62,11 +86,17 @@
       "lessons": [
         {
           "id": "pha-9-cao-lo-giua",
-          "title": "Phá 9 bi xếp cao: bi 1 vào lỗ giữa"
+          "title": "Phá 9 bi xếp cao: bi 1 vào lỗ giữa",
+          "summary": "Phá 9 bi xếp cao từ mép box, đưa bi 1 vào lỗ giữa.",
+          "intro": "Ở khuôn xếp cao, bi 9 nằm trên chấm nên cả khuôn dịch về phía người phá. Mục tiêu chính của cú phá là đưa bi 1 vào lỗ giữa. Bi cái đặt ở mép break box, chạm bi 1 hơi dày hơn nửa bi; chạm dày quá thì bi 1 lệch về đầu bàn, mỏng quá thì lệch về cuối bàn.",
+          "tier": "free"
         },
         {
           "id": "pha-9-thap-bi-canh",
-          "title": "Phá 9 bi xếp thấp: bi cánh vào lỗ góc"
+          "title": "Phá 9 bi xếp thấp: bi cánh vào lỗ góc",
+          "summary": "Phá 9 bi xếp thấp từ cánh, đưa bi cánh vào lỗ góc.",
+          "intro": "Ở khuôn xếp thấp, bi 1 nằm trên chấm. Phá từ cánh, bi cánh phía người phá sẽ chạy về lỗ góc cuối bàn nếu khuôn khít. Lưu ý: trong mô phỏng này bi cánh rơi khi chạm bi 1 gần trọn bi, dày hơn mức khoảng 2/3 bi mà cơ thủ thường ngắm trên bàn thật.",
+          "tier": "free"
         }
       ]
     }

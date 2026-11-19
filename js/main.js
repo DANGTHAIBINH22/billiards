@@ -11,6 +11,9 @@ import { buildRack, spotPosition, HEAD_STRING_X, HEAD_SPOT, RACK_KINDS } from '.
 import { createGame, groupOf, KINDS } from './rules.js';
 import { TIP_LIMIT, LESSON_ID, shotSpeed, validateScenario, decodeScenario, encodeScenario, scenarioFromState, shotToState } from './scenario.js';
 import { POCKET_NAMES, evaluateGoal } from './lesson.js';
+import { canOpenLesson, canUseFeature } from './site/access.js';
+import { markPassed } from './site/progress.js';
+import { loadCatalog } from './site/catalog.js';
 
 const DEG = 180 / Math.PI;
 const $ = (id) => document.getElementById(id);
@@ -279,6 +282,7 @@ function afterSetup() {
 }
 
 function startMatch({ kind, rack9, names }) {
+  if (!allowed('match')) return;
   const k = Number(kind);
   leaveScenario();
   state.game = createGame({ kind: k, players: names });
@@ -740,6 +744,13 @@ function toast(msg, ms = 3800) {
   toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
 
+/** Ask access.js whether a feature may be used; tells the visitor when it may not. */
+function allowed(feature) {
+  if (canUseFeature(feature)) return true;
+  toast('Tính năng này thuộc gói Pro');
+  return false;
+}
+
 function ask(title, text, a, b) {
   return new Promise((resolve) => {
     const d = $('choice');
@@ -961,8 +972,11 @@ $('power').addEventListener('input', (e) => { state.shot.power = Number(e.target
 $('horizon').addEventListener('input', (e) => { state.horizon = Number(e.target.value); syncUI(); state.dirty = true; });
 $('elev').addEventListener('input', (e) => { state.elev = Number(e.target.value) / DEG; syncUI(); state.dirty = true; });
 $('jumpCue').addEventListener('change', (e) => { state.jump = e.target.checked; syncUI(); state.dirty = true; });
-$('breakPower').addEventListener('change', (e) => { state.breakPower = e.target.checked; syncUI(); state.dirty = true; });
-$('slowmo').addEventListener('change', (e) => (state.slowmo = e.target.checked));
+$('breakPower').addEventListener('change', (e) => { state.breakPower = e.target.checked && allowed('breakPower'); syncUI(); state.dirty = true; });
+$('slowmo').addEventListener('change', (e) => {
+  state.slowmo = e.target.checked && allowed('slowmo');
+  e.target.checked = state.slowmo;
+});
 $('tipPresets').addEventListener('click', (e) => {
   const t = e.target.closest('button')?.dataset.tip;
   if (t) { const [a, b] = t.split(',').map(Number); setTip(a, b); }
@@ -1027,6 +1041,7 @@ $('panelToggle').addEventListener('click', () => {
 });
 
 function setLines(l) {
+  if (l === 'full' && !allowed('fullLines')) l = 'aim';
   state.lines = l;
   document.querySelectorAll('#lines button').forEach((b) => b.classList.toggle('on', b.dataset.lines === l));
   state.dirty = true;
@@ -1254,8 +1269,11 @@ function syncLessonButtons() {
 // A lesson is one graded shot. The balls stay where they stopped so the result can be read off the table.
 function finishLessonShot() {
   state.phase = 'modal';
-  renderLessonResult(evaluateGoal(state.scenario.goal, state.events, state.balls));
+  const result = evaluateGoal(state.scenario.goal, state.events, state.balls);
+  renderLessonResult(result);
   syncLessonButtons();
+  // Watching the model shot is not passing the lesson.
+  if (result.pass && !state.lesson.demo && state.scenario.id) markPassed(state.scenario.id);
 }
 
 function retryLesson() {
@@ -1290,7 +1308,7 @@ $('lessonDemo').addEventListener('click', playDemo);
 
 // ---------- Share / load ----------
 async function shareTable() {
-  if (state.phase !== 'aim') return;
+  if (state.phase !== 'aim' || !allowed('share')) return;
   let sc;
   try {
     sc = scenarioFromState(state.balls, state.shot, state.jump, state.elev, state.breakPower);
@@ -1298,9 +1316,7 @@ async function shareTable() {
     toast(err.message);
     return;
   }
-  const url = new URL(location.href);
-  url.search = '';
-  url.hash = '';
+  const url = new URL('/gia-lap/', document.baseURI); // baseURI also resolves inside a srcdoc frame
   url.searchParams.set('s', encodeScenario(sc));
   try {
     await navigator.clipboard.writeText(url.href);
@@ -1315,13 +1331,29 @@ async function shareTable() {
 $('share').addEventListener('click', shareTable);
 
 const LESSON_TIMEOUT = 8000;
+/**
+ * A lesson the catalogue marks as locked for this visitor is not requested at all. If the catalogue itself cannot
+ * be read the lesson is allowed: this check is presentation, not protection (see site/access.js).
+ */
+async function lessonLocked(id) {
+  let lessons;
+  try {
+    lessons = await loadCatalog();
+  } catch {
+    return false;
+  }
+  const entry = lessons.find((l) => l.id === id);
+  return !!entry && !canOpenLesson(entry);
+}
+
 async function fetchLesson(id) {
   if (!LESSON_ID.test(id)) throw new Error('Mã bài học không hợp lệ');
+  if (await lessonLocked(id)) throw new Error('Bài này thuộc gói Pro');
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), LESSON_TIMEOUT);
   let raw;
   try {
-    const res = await fetch(`lessons/${id}.json`, { signal: ctl.signal });
+    const res = await fetch(`/lessons/${id}.json`, { signal: ctl.signal });
     if (!res.ok) throw new Error('missing');
     // The server answers unknown paths with index.html (status 200), so a missing lesson only shows up here.
     raw = await res.json();
@@ -1462,8 +1494,11 @@ setView('persp');
 syncMenu();
 requestAnimationFrame(tick);
 const query = new URLSearchParams(location.search);
+// Inside a lesson page the page owns navigation; the simulator hides its own menu and home link.
+if (query.has('embed')) document.body.classList.add('embed');
 if (query.has('s') || query.has('lesson')) scenarioFromUrl(query).then((sc) => sc && applyScenario(sc));
-else if (!query.has('nomenu')) $('menu').showModal();
+else if (Object.hasOwn(KINDS, query.get('match'))) startMatch({ kind: query.get('match'), rack9: '9low', names: ['Người chơi 1', 'Người chơi 2'] });
+else if (!query.has('nomenu') && !query.has('embed')) $('menu').showModal();
 
 // Test / debugging hook.
 window.__billiards = { applyScenario, retryLesson, playDemo, shareTable, setShow, applyThickness, applyPocket, cheekAt, setCheek, state, setPreset, startMatch, shoot, setTip, setView, setLines, camera, controls, POCKETS, RACK_KINDS, groupOf };

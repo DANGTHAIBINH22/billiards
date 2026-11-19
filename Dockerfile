@@ -1,7 +1,10 @@
-# Static site: Three.js app served by nginx (no build step, vendor/ already holds Three.js).
+# Static site served by nginx (no build step, vendor/ already holds Three.js).
+# Every folder the site serves must be copied here AND listed in .github/workflows/deploy_vm.yml.
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html /usr/share/nginx/html/
+COPY gia-lap /usr/share/nginx/html/gia-lap
+COPY bai-hoc /usr/share/nginx/html/bai-hoc
 COPY css /usr/share/nginx/html/css
 COPY js /usr/share/nginx/html/js
 COPY lessons /usr/share/nginx/html/lessons

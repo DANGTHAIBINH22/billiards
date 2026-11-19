@@ -1,0 +1,48 @@
+/* Design tokens shared by the site pages and the simulator. Components use these, never raw values. */
+:root {
+  /* colour */
+  --bg: #0e1116;
+  --surface: #151a21;
+  --surface-2: #1c232d;
+  --felt: #0e5a3d;
+  --felt-ink: #cfe8dc;
+  --card: rgba(18, 22, 29, 0.88); /* panels floating over the 3D table */
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --text: #e8ebf0;
+  --muted: #9aa4b2;
+  --accent: #f2c14e;
+  --accent-ink: #1b1403;
+  --cue: #6fd3ff;
+  --ok: #6be3a0;
+  --bad: #ff7a7a;
+
+  /* type */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13.5px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 21px;
+  --text-xl: 28px;
+  --text-2xl: 38px;
+  --leading: 1.5;
+  --leading-tight: 1.2;
+
+  /* space */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+
+  /* shape */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --tap: 44px; /* minimum touch target */
+}

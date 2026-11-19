@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="data:,">
+  <title>Bài học · Bida 3D Pro</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="site">
+  <a class="skip" href="#main">Bỏ qua tới nội dung</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/">Bida 3D<span>Pro</span></a>
+      <nav class="site-nav" aria-label="Điều hướng chính">
+        <a href="/#bai-hoc" aria-current="page">Bài học</a>
+        <a href="/gia-lap/">Giả lập</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <!-- Loading -->
+    <div id="loading" aria-live="polite">
+      <p class="crumbs">Đang tải bài học…</p>
+      <ol class="rows skeleton" aria-hidden="true">
+        <li class="row"><span></span><span><span class="bar short"></span><span class="bar long"></span></span><span></span></li>
+      </ol>
+    </div>
+
+    <!-- Could not load the catalogue -->
+    <div id="failed" class="state" role="alert" hidden>
+      <p id="failedText"></p>
+      <div class="actions">
+        <button class="btn" id="retry" type="button">Thử lại</button>
+        <a class="btn" href="/">Về trang chính</a>
+      </div>
+    </div>
+
+    <!-- No such lesson -->
+    <div id="missing" hidden>
+      <p class="crumbs"><a href="/#bai-hoc">Bài học</a></p>
+      <h1 tabindex="-1">Không tìm thấy bài học này</h1>
+      <p class="lead">Đường dẫn có thể đã cũ hoặc gõ thiếu.</p>
+      <a class="btn primary" href="/#bai-hoc">Xem tất cả bài học</a>
+    </div>
+
+    <!-- The lesson -->
+    <div id="view" hidden>
+      <nav class="crumbs" aria-label="Đường dẫn"><a href="/#bai-hoc">Bài học</a> / <span id="crumbGroup"></span></nav>
+      <div class="lesson-head">
+        <h1 id="title"></h1>
+        <p class="lead" id="summary"></p>
+      </div>
+
+      <div class="lesson-layout">
+        <article class="explain">
+          <h2>Bài này dạy gì</h2>
+          <p id="intro"></p>
+          <div id="howto">
+            <h2>Cách tập</h2>
+            <ol>
+              <li>Đọc đề bài trên bàn tập, xem lỗ và vùng mục tiêu được đánh dấu.</li>
+              <li>Chỉnh hướng cơ, lực và điểm chạm, rồi bấm "Bắn".</li>
+              <li>Chưa đạt thì đọc lý do, bấm "Thử lại". Bí thì "Xem cú mẫu".</li>
+            </ol>
+          </div>
+          <p class="result" id="result" role="status"></p>
+        </article>
+
+        <div class="stage" id="stage">
+          <iframe id="sim" title="Bàn tập 3D của bài học" allow="fullscreen"></iframe>
+          <div class="stage-foot"><a id="fullLink" href="/gia-lap/">Mở bàn tập toàn màn hình</a></div>
+        </div>
+
+        <div class="lock" id="lock" hidden>
+          <h2><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg>Bài này thuộc gói Pro</h2>
+          <p>Gói Pro chưa mở bán. Trong lúc chờ, các bài miễn phí vẫn tập được đầy đủ.</p>
+          <a class="btn primary" href="/#bai-hoc">Xem các bài đang mở</a>
+        </div>
+      </div>
+
+      <nav class="pager" aria-label="Bài trước và bài sau">
+        <a class="btn" id="prev" hidden><span></span></a>
+        <a class="btn" id="next" hidden><span></span></a>
+      </nav>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">Bida 3D Pro. Bàn tập mô phỏng; kết quả trên bàn thật còn tùy nỉ, băng và bi.</div>
+  </footer>
+
+  <script type="module" src="/js/site/lesson-page.js"></script>
+</body>
+</html>
