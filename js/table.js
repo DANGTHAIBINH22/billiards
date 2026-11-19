@@ -1,11 +1,24 @@
 // Tournament-style 9ft table (black lacquer rails with red inlay, tournament-green cloth, pearl sights).
 // Plan-view shapes are written in engine coordinates (x, y); rotateX(-90°) maps them to Three (x, z=-y).
 import * as THREE from 'three';
-import { TABLE } from './physics.js';
+import { TABLE, CORNER_K, SIDE_K } from './physics.js';
 
 const { hx, hy } = TABLE;
 const RAIL_H = 0.05;
 const RAIL_W = 0.19; // from the nose line outwards
+const SIDE_JAW = 0.1; // half-width of the side-pocket jaw piece
+// WPA pocket facings, as the angle between the cushion nose and the cut into the pocket.
+const CORNER_FACING = (142 * Math.PI) / 180;
+const SIDE_FACING = (104 * Math.PI) / 180;
+
+/** First point where the ray from (px, py) along (dx, dy) meets the circle; the jaw facing ends there. */
+function rayToCircle(px, py, dx, dy, cx, cy, r) {
+  const ox = px - cx;
+  const oy = py - cy;
+  const b = ox * dx + oy * dy;
+  const t = -b - Math.sqrt(b * b - (ox * ox + oy * oy - r * r));
+  return [px + dx * t, py + dy * t];
+}
 
 function clothTexture() {
   const c = document.createElement('canvas');
@@ -47,17 +60,20 @@ function cornerShape() {
   const cx = a + 0.02;
   const cy = b + 0.02;
   const r = 0.08;
-  const q1 = cy - Math.sqrt(r * r - 0.02 * 0.02);
+  // The jaw starts at the physics knuckles, so what looks like rail is rail: each facing runs from a knuckle back to
+  // the hole at the WPA facing angle.
+  const f = Math.PI - CORNER_FACING; // facing direction, measured from the nose line
+  const [t1x, t1y] = rayToCircle(a - CORNER_K, b, Math.cos(f), Math.sin(f), cx, cy, r);
+  const [t2x, t2y] = rayToCircle(a, b - CORNER_K, Math.sin(f), Math.cos(f), cx, cy, r);
   const s = new THREE.Shape();
-  s.moveTo(a - 0.075, b);
-  s.lineTo(a - 0.075, b + RAIL_W);
+  s.moveTo(a - CORNER_K, b);
+  s.lineTo(a - CORNER_K, b + RAIL_W);
   s.lineTo(a + RAIL_W, b + RAIL_W);
-  s.lineTo(a + RAIL_W, b - 0.075);
-  s.lineTo(a, b - 0.075);
-  s.lineTo(a, q1);
-  const a0 = Math.atan2(q1 - cy, a - cx);
-  s.absarc(cx, cy, r, a0 + 2 * Math.PI, Math.atan2(b - cy, a - 0.0575 - cx) + 2 * Math.PI, false);
-  s.lineTo(a - 0.075, b);
+  s.lineTo(a + RAIL_W, b - CORNER_K);
+  s.lineTo(a, b - CORNER_K);
+  s.lineTo(t2x, t2y);
+  s.absarc(cx, cy, r, Math.atan2(t2y - cy, t2x - cx) + 2 * Math.PI, Math.atan2(t1y - cy, t1x - cx) + 2 * Math.PI, false);
+  s.lineTo(a - CORNER_K, b);
   return s;
 }
 
@@ -65,15 +81,18 @@ function sideShape() {
   const b = hy;
   const cy = b + 0.03;
   const r = 0.065;
-  const x1 = Math.sqrt(r * r - 0.03 * 0.03);
+  const f = SIDE_FACING - Math.PI / 2; // facing lean from the perpendicular to the rail
+  const [tx, ty] = rayToCircle(SIDE_K, b, -Math.sin(f), Math.cos(f), 0, cy, r);
   const s = new THREE.Shape();
-  s.moveTo(-0.1, b);
-  s.lineTo(-0.1, b + RAIL_W);
-  s.lineTo(0.1, b + RAIL_W);
-  s.lineTo(0.1, b);
-  s.lineTo(x1, b);
-  s.absarc(0, cy, r, Math.atan2(b - cy, x1), Math.atan2(b - cy, -x1) + (Math.atan2(b - cy, -x1) < 0 ? 2 * Math.PI : 0), false);
-  s.lineTo(-0.1, b);
+  s.moveTo(-SIDE_JAW, b);
+  s.lineTo(-SIDE_JAW, b + RAIL_W);
+  s.lineTo(SIDE_JAW, b + RAIL_W);
+  s.lineTo(SIDE_JAW, b);
+  s.lineTo(SIDE_K, b);
+  s.lineTo(tx, ty);
+  s.absarc(0, cy, r, Math.atan2(ty - cy, tx), Math.atan2(ty - cy, -tx) + 2 * Math.PI, false);
+  s.lineTo(-SIDE_K, b);
+  s.lineTo(-SIDE_JAW, b);
   return s;
 }
 
@@ -147,9 +166,9 @@ export function buildTable(scene) {
   }
 
   // Straight rail tops between the jaws, with a red inlay and pearl sights.
-  const longLen = hx - 0.075 - 0.1;
-  const cx = (hx - 0.075 + 0.1) / 2;
-  const shortLen = 2 * (hy - 0.075);
+  const longLen = hx - CORNER_K - SIDE_JAW;
+  const cx = (hx - CORNER_K + SIDE_JAW) / 2;
+  const shortLen = 2 * (hy - CORNER_K);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       add(new THREE.Mesh(new THREE.BoxGeometry(longLen, RAIL_H, RAIL_W - 0.06), lacquer), sx * cx, RAIL_H / 2, sz * (hy + 0.06 + (RAIL_W - 0.06) / 2));
@@ -164,7 +183,7 @@ export function buildTable(scene) {
   for (const sx of [-1, 1]) for (const k of [-1, 0, 1]) sight(sx * (hx + 0.125), (k * hy) / 2);
 
   // Cushions.
-  const longC = cushionGeo(hx - 0.075 - 0.1);
+  const longC = cushionGeo(longLen);
   const shortC = cushionGeo(shortLen);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {

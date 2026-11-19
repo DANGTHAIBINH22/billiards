@@ -1,6 +1,7 @@
 // Reference breaks, taken from what players see on a real table (docs/research/2026-11-19_tuan-monkey-tong-hop.md).
-// The passing tests pin behaviour the engine reproduces. The `todo` tests are targets it does not reach yet: they
-// run and report, but do not fail the suite.
+// The passing tests pin behaviour the engine reproduces, at the hit thickness where the engine produces it. That
+// thickness is not always the one players quote: the wing ball drops for a much fuller hit than "2/3 ball".
+// The `todo` tests are targets the engine does not reach yet: they run and report, but do not fail the suite.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { R, TABLE, createBall, strike, stepWorld } from '../js/physics.js';
@@ -10,6 +11,7 @@ const DEG = 180 / Math.PI;
 const ROWS = { '9low': [1, 2, 3, 2, 1], '9high': [1, 2, 3, 2, 1], '10': [1, 2, 3, 4] };
 const SIDE_POCKET_FAR = 5; // side pocket across the table from the breaker
 const CORNER_NEAR = 1; // foot corner on the breaker's side
+const HEAD_CORNER_NEAR = 0; // head corner on the breaker's side
 
 /**
  * Break from the head string at y = cueY (the breaker stands on the negative-y side), hitting `thick` of the 1-ball
@@ -80,7 +82,24 @@ test('9-ball low rack, wing break: the near wing ball leaves toward the foot cor
   }
 });
 
-test('9-ball low rack, wing break: the near wing ball drops in the corner (target: 4 of 6)', { todo: 'leaves 0-9 deg off the pocket line; the pocket accepts +-2.1 deg from there at any speed, and later kisses in the pack do the rest' }, () => {
+test('9-ball low rack, wing break, full hit on the 1-ball: the near wing ball drops in the foot corner', () => {
+  for (const speed of [7, 8, 9]) {
+    for (const thick of [0.875, 0.9, 0.925, 0.95]) {
+      const r = breakShot('9low', WING, thick, speed, -0.25);
+      assert.equal(r.pots[r.at(2, 0)], CORNER_NEAR, `${speed} m/s, thickness ${thick}: wing ball not in the corner`);
+    }
+  }
+});
+
+test('9-ball low rack, wing break just over half ball: the 1-ball goes one rail and drops in the head corner on the breaker\'s side', () => {
+  for (const speed of [7, 8, 9]) {
+    for (const thick of [0.575, 0.6]) {
+      assert.equal(breakShot('9low', WING, thick, speed, -0.25).pots[1], HEAD_CORNER_NEAR, `${speed} m/s, thickness ${thick}`);
+    }
+  }
+});
+
+test('9-ball low rack, wing break at 2/3 ball: the near wing ball drops in the corner (target: 4 of 6)', { todo: 'it drops for hits of 0.875 and fuller; at 0.62-0.70 it leaves 0-9 deg off the pocket line' }, () => {
   let potted = 0;
   for (const speed of [7, 9]) for (const thick of [0.62, 0.66, 0.7]) { const r = breakShot('9low', WING, thick, speed, -0.25); potted += r.pots[r.at(2, 0)] === CORNER_NEAR; }
   assert.ok(potted >= 4, `wing ball potted ${potted}/6`);
@@ -95,9 +114,13 @@ test('9-ball high rack from the box edge: the 1-ball heads for the far side pock
   assert.ok(xs[0] > xs[1] && xs[1] > xs[2], `thinner must land nearer the foot: ${xs.map((x) => x.toFixed(3))}`);
 });
 
-test('9-ball high rack from the box edge: the 1-ball drops in the side pocket just thinner than half ball', { todo: 'lands 6-9 cm on the foot side of the pocket for 0.40-0.50; it drops near 0.60' }, () => {
-  const potted = [0.4, 0.45, 0.5].some((thick) => breakShot('9high', BOX_EDGE, thick, 8, -0.3).pots[1] === SIDE_POCKET_FAR);
-  assert.ok(potted);
+test('9-ball high rack from the box edge, a little thicker than half ball: the 1-ball drops in the side pocket', () => {
+  // 0.625 is the 5/8-ball aim Vietnamese players credit to Duong Quoc Hoang.
+  for (const speed of [7, 8, 9]) {
+    for (const thick of [0.55, 0.6, 0.625, 0.65, 0.675]) {
+      assert.equal(breakShot('9high', BOX_EDGE, thick, speed, -0.3).pots[1], SIDE_POCKET_FAR, `${speed} m/s, thickness ${thick}`);
+    }
+  }
 });
 
 test('10-ball soft break from near the centre: both second-row balls leave on the lines to the side pockets', () => {

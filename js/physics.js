@@ -44,11 +44,13 @@ export const POCKETS = [
   { x: 0, y: TABLE.hy + 0.03, r: 0.072 },
 ];
 
-// Jaw knuckles: the cushion nose stops here and the pocket mouth opens (WPA mouths: corner ~11 cm, side ~12 cm).
+// Jaw knuckles: the cushion nose stops here and the pocket mouth opens.
 // Without them the cushion line ran straight across the mouth and only a ~8 cm window dropped balls in the side pockets.
-export const KNUCKLE_R = 0.008;
-const SIDE_K = 0.062; // |x| of the side-pocket knuckles
-const CORNER_K = 0.078; // distance from the nose-line corner to each corner knuckle
+// Mouths are the tight end of the WPA range, measured between the knuckle surfaces: corner 4.5 in (11.43 cm),
+// side 5 in (12.70 cm). They used to be 9.4 cm and 10.8 cm, tighter than any real table.
+export const KNUCKLE_R = 0.004;
+export const SIDE_K = 0.0675; // |x| of the side-pocket knuckles: 2 * SIDE_K - 2 * KNUCKLE_R = 0.127
+export const CORNER_K = 0.0865; // nose-line corner to each corner knuckle: CORNER_K * sqrt(2) - 2 * KNUCKLE_R = 0.1143
 export const KNUCKLES = [];
 for (const sx of [-1, 1]) {
   for (const sy of [-1, 1]) {

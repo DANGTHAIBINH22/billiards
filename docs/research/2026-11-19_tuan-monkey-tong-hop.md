@@ -136,6 +136,19 @@ Engine mới (tìm thời điểm chạm + mô phỏng tiếp xúc cho cụm bi)
 
 Còn lệch sau T-002: bi cánh và bi 1 xếp cao đi đúng hướng nhưng chưa rơi lỗ. Đo trên engine: từ vị trí bi cánh, lỗ góc nhận hướng −49,5° đến −45,3°, tức cửa sổ khoảng 6 cm và không đổi theo lực. Kênh đo trên bàn thật được 10 cm khi đánh nhẹ và 6 cm khi đánh mạnh (quy luật D13), nên lỗ của engine hẹp hơn lỗ thật ở lực nhẹ.
 
+### 6.2 Sau T-003
+
+Quét mịn độ dày chạm bi 1 cho thấy engine tái hiện đủ các hiện tượng của cú phá 9 bi, nhưng không phải lúc nào cũng ở đúng độ dày video nêu. Miệng lỗ cũng đã nới về chuẩn WPA (lỗ góc 11,43 cm, trước là 9,43 cm).
+
+| Hiện tượng | Video | Engine cho ra ở độ dày |
+|---|---|---|
+| 9 bi xếp cao từ mép box: bi 1 vào lỗ giữa | Hơi mỏng hơn nửa bi; hoặc 5/8 bi (Hoàng Sao) | 0,55–0,675 |
+| 9 bi xếp thấp từ cánh: bi cánh vào lỗ góc | Khoảng 2/3 bi | 0,875–0,95 |
+| 9 bi xếp thấp từ cánh: bi 1 đi một băng về lỗ góc đầu bàn | Khoảng 2/3 bi | 0,575–0,60 (bi 1 vào luôn lỗ) |
+| 9 bi xếp thấp từ cánh: bi 1 vào lỗ giữa | Bắn quá dày | 0,85–0,925 |
+
+Hệ quả cho danh mục bài học ở mục 7: A3 và A4 (9 bi xếp cao) soạn được ngay. A1 soạn được nếu dạy theo độ dày của engine; nếu muốn đúng "2/3 bi" như video thì còn phải tìm nguyên nhân lệch.
+
 ### Kết luận về vật lý (viết trước T-002)
 
 1. **Va chạm bi–bi khi bi chạy nhanh là lỗi lớn nhất.** Engine chỉ phát hiện va chạm sau khi hai bi đã lún vào nhau trong một bước. Ở 7 m/s mỗi bước bi đi 14,6 mm, tức nửa bán kính. Sửa bằng cách tính đúng thời điểm chạm.
