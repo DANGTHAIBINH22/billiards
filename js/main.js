@@ -1144,7 +1144,8 @@ function placeCueAfterFoul(res) {
 async function finishShot() {
   const g = state.game;
   state.practice.breakBox = false;
-  state.breakPower = false;
+  // Free play and matches break once. A lesson repeats its shot, so its break power stays as the learner has it.
+  if (!state.lesson) state.breakPower = false;
   if (!g) {
     if (state.lesson) { finishLessonShot(); return; }
     if (!state.balls[0].active) place(0, HEAD_SPOT.x, 0);
@@ -1262,7 +1263,6 @@ function retryLesson() {
   if (!ls || state.phase !== 'modal') return;
   // After a demo the learner gets their own settings back, to adjust them rather than start over.
   if (ls.saved) Object.assign(state, ls.saved);
-  else state.breakPower = state.scenario.shot.breakPower === true; // a break lesson stays a break on every try
   ls.saved = null;
   ls.demo = false;
   placeScenarioBalls();

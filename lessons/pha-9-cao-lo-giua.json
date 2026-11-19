@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "pha-9-cao-lo-giua",
+  "title": "Phá 9 bi xếp cao: bi 1 vào lỗ giữa",
+  "prompt": "Bi cái nằm ở mép break box, Lực phá đã bật. Cú khởi đầu đang ngắm trọn bi số 1 nên bi 1 không về lỗ. Hãy ngắm má bi số 1 khoảng 5/8 (dày hơn nửa bi một chút) về phía mình và hạ đầu cơ dưới tâm, để bi 1 bật khỏi khuôn rồi rơi vào lỗ giữa trên. Ô \"Má bi\" cho biết bạn đang ngắm dày bao nhiêu.",
+  "balls": [
+    { "id": 0, "x": -0.635, "y": -0.28892 },
+    { "id": 1, "x": 0.53601, "y": 0 },
+    { "id": 2, "x": 0.58551, "y": 0.02857 },
+    { "id": 3, "x": 0.73399, "y": 0 },
+    { "id": 4, "x": 0.635, "y": -0.05715 },
+    { "id": 5, "x": 0.68449, "y": 0.02857 },
+    { "id": 6, "x": 0.68449, "y": -0.02857 },
+    { "id": 7, "x": 0.58551, "y": -0.02857 },
+    { "id": 8, "x": 0.635, "y": 0.05715 },
+    { "id": 9, "x": 0.635, "y": 0 }
+  ],
+  "shot": { "angle": 13.86, "power": 70, "a": 0, "b": 0, "breakPower": true },
+  "demo": { "angle": 12.76, "power": 70, "a": 0, "b": -0.3, "breakPower": true },
+  "goal": { "pot": [{ "ball": 1, "pocket": 5 }], "firstContact": 1, "noScratch": true },
+  "lines": "aim",
+  "view": "top"
+}

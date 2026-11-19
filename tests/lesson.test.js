@@ -74,5 +74,9 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith('.json'))) {
     const demo = play(sc, sc.demo);
     assert.equal(demo.pass, true, `demo fails: ${demo.checks.filter((c) => !c.ok).map((c) => c.text).join('; ')}`);
     assert.equal(play(sc, sc.shot).pass, false, 'starting shot already solves the lesson');
+    // A model shot must sit inside its window, not on the edge: other JS engines differ in the last digits.
+    for (const off of [-0.05, 0.05]) {
+      assert.equal(play(sc, { ...sc.demo, angle: sc.demo.angle + off }).pass, true, `demo is too close to the edge: fails ${off} deg away`);
+    }
   });
 }

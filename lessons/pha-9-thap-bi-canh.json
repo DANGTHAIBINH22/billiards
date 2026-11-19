@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "pha-9-thap-bi-canh",
+  "title": "Phá 9 bi xếp thấp: bi cánh vào lỗ góc",
+  "prompt": "Phá từ cánh, Lực phá đã bật. Mục tiêu: bi cánh phía bạn (bi 4) rơi vào lỗ góc dưới-phải. Cú khởi đầu ngắm khoảng 2/3 bi số 1 và bi cánh sẽ trượt lỗ. Trong mô phỏng này bi cánh chỉ rơi khi chạm bi 1 dày hơn, từ khoảng 7/8 bi tới gần trọn bi. Hãy ngắm dày dần lên, đánh giữa bi cái.",
+  "balls": [
+    { "id": 0, "x": -0.635, "y": -0.5 },
+    { "id": 1, "x": 0.635, "y": 0 },
+    { "id": 2, "x": 0.68449, "y": 0.02857 },
+    { "id": 3, "x": 0.83297, "y": 0 },
+    { "id": 4, "x": 0.73399, "y": -0.05715 },
+    { "id": 5, "x": 0.78348, "y": 0.02857 },
+    { "id": 6, "x": 0.78348, "y": -0.02857 },
+    { "id": 7, "x": 0.68449, "y": -0.02857 },
+    { "id": 8, "x": 0.73399, "y": 0.05715 },
+    { "id": 9, "x": 0.73399, "y": 0 }
+  ],
+  "shot": { "angle": 20.67, "power": 60, "a": 0, "b": 0, "breakPower": true },
+  "demo": { "angle": 21.36, "power": 60, "a": 0, "b": 0, "breakPower": true },
+  "goal": { "pot": [{ "ball": 4, "pocket": 1 }], "firstContact": 1, "noScratch": true },
+  "lines": "aim",
+  "view": "top"
+}
