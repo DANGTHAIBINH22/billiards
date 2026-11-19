@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "id": "co-ban",
+      "title": "Cơ bản",
+      "lessons": [
+        {
+          "id": "thang-co-ban",
+          "title": "Đánh thẳng vào lỗ góc"
+        },
+        {
+          "id": "cat-30",
+          "title": "Cắt 30° vào lỗ góc"
+        }
+      ]
+    },
+    {
+      "id": "dau-co-doc",
+      "title": "Đứng bi, trô, cule",
+      "lessons": [
+        {
+          "id": "dung-bi-tranh-roi-lo",
+          "title": "Đứng bi để bi cái không rơi theo"
+        },
+        {
+          "id": "dung-bi",
+          "title": "Dừng bi tại chỗ (stop shot)"
+        },
+        {
+          "id": "tro-ve",
+          "title": "Trô: kéo bi cái lùi về"
+        },
+        {
+          "id": "cule-chay-theo",
+          "title": "Cule: cho bi cái chạy theo"
+        }
+      ]
+    },
+    {
+      "id": "ap-phe",
+      "title": "Áp phê",
+      "lessons": [
+        {
+          "id": "ap-phe-bat-bang",
+          "title": "Áp phê đổi hướng bật băng"
+        }
+      ]
+    },
+    {
+      "id": "dieu-bi",
+      "title": "Điều bi",
+      "lessons": [
+        {
+          "id": "quy-tac-45-do",
+          "title": "Quy tắc 45°: hai băng về giữa bàn"
+        }
+      ]
+    },
+    {
+      "id": "pha-bi",
+      "title": "Phá bi",
+      "lessons": [
+        {
+          "id": "pha-9-cao-lo-giua",
+          "title": "Phá 9 bi xếp cao: bi 1 vào lỗ giữa"
+        },
+        {
+          "id": "pha-9-thap-bi-canh",
+          "title": "Phá 9 bi xếp thấp: bi cánh vào lỗ góc"
+        }
+      ]
+    }
+  ]
+}

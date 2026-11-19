@@ -65,7 +65,26 @@ test('cue zone is judged on the resting cue ball; a pocketed cue ball is never i
 });
 
 // Every shipped lesson must be solvable by its own model shot, and must not open already solved.
-for (const file of readdirSync(DIR).filter((f) => f.endsWith('.json'))) {
+const LESSON_FILES = readdirSync(DIR).filter((f) => f.endsWith('.json') && f !== 'index.json');
+
+test('cue-rail goal counts the cue ball\'s cushions only', () => {
+  const goal = { noScratch: false, cueRails: 2 };
+  const hit = (id) => ({ type: 'cushion', id });
+  const res = (events) => evaluateGoal(goal, events, []);
+  assert.equal(res([hit(0), hit(1), hit(1)]).pass, false);
+  assert.match(res([hit(0)]).checks[0].text, /ít nhất 2 băng \(mới chạm 1\)/);
+  assert.equal(res([hit(0), hit(1), hit(0)]).pass, true);
+});
+
+test('lessons/index.json lists every lesson exactly once, with its real title', () => {
+  const index = JSON.parse(readFileSync(new URL('index.json', DIR), 'utf8'));
+  const listed = index.groups.flatMap((g) => g.lessons);
+  assert.deepEqual(listed.map((l) => `${l.id}.json`).sort(), [...LESSON_FILES].sort());
+  for (const l of listed) assert.equal(l.title, JSON.parse(readFileSync(new URL(`${l.id}.json`, DIR), 'utf8')).title, l.id);
+  for (const g of index.groups) assert.ok(g.id && g.title && g.lessons.length > 0);
+});
+
+for (const file of LESSON_FILES) {
   test(`lesson ${file}: valid, demo passes, starting shot does not`, () => {
     const sc = validateScenario(JSON.parse(readFileSync(new URL(file, DIR), 'utf8')));
     assert.match(sc.id, LESSON_ID);

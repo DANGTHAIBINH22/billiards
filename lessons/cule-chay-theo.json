@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "cule-chay-theo",
+  "title": "Cule: cho bi cái chạy theo",
+  "prompt": "Đưa bi 1 vào lỗ giữa trên và cho bi cái chạy tiếp về vùng tròn bên trái bàn. Giữ lực nhẹ. Cú khởi đầu đánh dưới tâm nên bi cái gần như dừng lại sau va chạm. Hãy nâng đầu cơ lên trên tâm (cule): bi cái sẽ lăn theo xa hơn mà không cần đánh mạnh thêm.",
+  "balls": [
+    { "id": 0, "x": 0.779, "y": 0.235 },
+    { "id": 1, "x": 0.3, "y": 0.38 }
+  ],
+  "shot": { "angle": 165.93, "power": 15, "a": 0, "b": -0.3 },
+  "demo": { "angle": 165.93, "power": 15, "a": 0, "b": 0.2 },
+  "goal": { "noScratch": true, "pot": [{ "ball": 1, "pocket": 5 }], "cueZone": { "x": -0.711, "y": -0.05, "r": 0.3 } },
+  "lines": "aim",
+  "view": "persp"
+}

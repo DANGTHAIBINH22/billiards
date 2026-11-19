@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "id": "ap-phe-bat-bang",
+  "title": "Áp phê đổi hướng bật băng",
+  "prompt": "Chỉ có bi cái. Cú khởi đầu bắn thẳng vào băng dài, đánh giữa bi: bi cái bật thẳng trở lại. Hãy giữ nguyên hướng cơ và lực, đặt áp phê phải (dịch điểm chạm sang phải) để bi cái bật lệch sang phải và dừng trong vùng tròn. Trước khi chạm băng, áp phê gần như không làm đổi đường đi.",
+  "balls": [
+    { "id": 0, "x": 0.4, "y": -0.1 }
+  ],
+  "shot": { "angle": 90, "power": 14, "a": 0, "b": 0 },
+  "demo": { "angle": 90, "power": 14, "a": 0.32, "b": 0 },
+  "goal": { "noScratch": true, "cueRails": 1, "cueZone": { "x": 0.698, "y": -0.19, "r": 0.2 } },
+  "lines": "aim",
+  "view": "top"
+}

@@ -24,6 +24,12 @@ function checkScratch(events) {
   return { key: 'scratch', ok: true, text: 'Bi cái không rơi lỗ' };
 }
 
+function checkRails(want, events) {
+  const hit = events.filter((e) => e.type === 'cushion' && e.id === 0).length;
+  if (hit >= want) return { key: 'rails', ok: true, text: `Bi cái chạm ${hit} băng` };
+  return { key: 'rails', ok: false, text: `Bi cái phải chạm ít nhất ${want} băng (mới chạm ${hit})` };
+}
+
 function checkZone(zone, balls) {
   const cue = balls.find((b) => b.id === 0);
   if (!cue || !cue.active) return { key: 'zone', ok: false, text: 'Bi cái không còn trên bàn' };
@@ -42,6 +48,7 @@ export function evaluateGoal(goal, events, balls) {
   const checks = [];
   for (const want of goal.pot || []) checks.push(checkPot(want, events));
   if (goal.firstContact != null) checks.push(checkFirstContact(goal.firstContact, events));
+  if (goal.cueRails != null) checks.push(checkRails(goal.cueRails, events));
   if (goal.cueZone) checks.push(checkZone(goal.cueZone, balls));
   if (goal.noScratch) checks.push(checkScratch(events));
   return { pass: checks.every((c) => c.ok), checks };

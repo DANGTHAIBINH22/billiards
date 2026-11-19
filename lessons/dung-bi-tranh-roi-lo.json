@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "dung-bi-tranh-roi-lo",
+  "title": "Đứng bi để bi cái không rơi theo",
+  "prompt": "Bi 1 nằm thẳng hàng với lỗ góc trên-phải. Cú khởi đầu đánh giữa bi: bi 1 vào lỗ nhưng bi cái lăn theo và rơi luôn. Hãy hạ đầu cơ xuống dưới tâm một chút để bi cái đứng lại sau va chạm (đứng bi).",
+  "balls": [
+    { "id": 0, "x": 0.578, "y": -0.057 },
+    { "id": 1, "x": 1.043, "y": 0.408 }
+  ],
+  "shot": { "angle": 45, "power": 35, "a": 0, "b": 0 },
+  "demo": { "angle": 45, "power": 35, "a": 0, "b": -0.2 },
+  "goal": { "noScratch": true, "pot": [{ "ball": 1, "pocket": 3 }] },
+  "lines": "aim",
+  "view": "persp"
+}

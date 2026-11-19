@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "quy-tac-45-do",
+  "title": "Quy tắc 45°: hai băng về giữa bàn",
+  "prompt": "Đưa bi 1 vào lỗ góc dưới-phải và đưa bi cái về vùng tròn giữa bàn. Bi cái sẽ vào băng ngắn ở góc gần 45°, bật sang băng dài rồi đi ngang qua giữa bàn. Hướng cơ và điểm chạm đã đúng sẵn, cú khởi đầu chỉ thiếu lực. Hãy tăng lực vừa đủ để bi cái dừng trong vùng.",
+  "balls": [
+    { "id": 0, "x": 0.267, "y": 0.064 },
+    { "id": 1, "x": 0.7, "y": -0.051 }
+  ],
+  "shot": { "angle": -10.54, "power": 32, "a": 0, "b": 0 },
+  "demo": { "angle": -10.54, "power": 46, "a": 0, "b": 0 },
+  "goal": { "noScratch": true, "cueRails": 2, "pot": [{ "ball": 1, "pocket": 1 }], "cueZone": { "x": 0, "y": 0, "r": 0.22 } },
+  "lines": "aim",
+  "view": "top"
+}

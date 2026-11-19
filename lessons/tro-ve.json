@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "tro-ve",
+  "title": "Trô: kéo bi cái lùi về",
+  "prompt": "Đưa bi 1 vào lỗ góc trên-phải và kéo bi cái lùi về vùng tròn phía sau. Hướng cơ đã đúng sẵn. Cú khởi đầu đánh giữa bi nên bi cái đứng lại gần chỗ bi 1. Hãy hạ đầu cơ xuống dưới tâm (trô) cho tới khi bi cái lùi về đủ xa. Hạ thấp quá hoặc đánh mạnh quá thì bi cái lùi quá vùng.",
+  "balls": [
+    { "id": 0, "x": 0.416, "y": -0.05 },
+    { "id": 1, "x": 0.85, "y": 0.3 }
+  ],
+  "shot": { "angle": 39.02, "power": 40, "a": 0, "b": 0 },
+  "demo": { "angle": 39.02, "power": 40, "a": 0, "b": -0.3 },
+  "goal": { "noScratch": true, "pot": [{ "ball": 1, "pocket": 3 }], "cueZone": { "x": 0.549, "y": 0.117, "r": 0.18 } },
+  "lines": "aim",
+  "view": "persp"
+}

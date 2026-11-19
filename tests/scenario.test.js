@@ -31,6 +31,13 @@ test('encode -> decode round-trips, Vietnamese text included', () => {
   assert.deepEqual(decodeScenario(str), s);
 });
 
+test('a goal may ask only for cue-ball rails; scenarios without it are unchanged', () => {
+  const s = validateScenario({ v: 1, balls: [{ id: 0, x: 0, y: 0 }], goal: { cueRails: 3 } });
+  assert.deepEqual(s.goal, { noScratch: true, cueRails: 3 });
+  assert.equal('cueRails' in validateScenario(base()).goal, false);
+  assert.deepEqual(decodeScenario(encodeScenario(s)), s);
+});
+
 test('a scenario without a goal stays a plain table position', () => {
   const s = validateScenario({ v: 1, balls: [{ id: 0, x: 0, y: 0 }] });
   assert.equal(s.goal, null);
@@ -51,6 +58,9 @@ test('invalid tables are rejected with a reason', () => {
   bad({ goal: { pot: [{ ball: 5 }] } }, /không có trên bàn/);
   bad({ goal: { pot: [{ ball: 1, pocket: 6 }] } }, /Số lỗ/);
   bad({ goal: { noScratch: true } }, /Mục tiêu trống/);
+  bad({ goal: { cueRails: 0 } }, /Số băng/);
+  bad({ goal: { cueRails: 2.5 } }, /Số băng/);
+  bad({ goal: { cueRails: '2' } }, /Số băng/);
   bad({ goal: { cueZone: { x: 5, y: 0, r: 0.1 } } }, /ngoài bàn/);
   assert.throws(() => validateScenario(null), /không hợp lệ/);
   assert.throws(() => validateScenario([]), /không hợp lệ/);

@@ -98,7 +98,11 @@ function normalizeGoal(raw, balls) {
     if (Math.abs(z.x) > TABLE.hx || Math.abs(z.y) > TABLE.hy) fail('Vùng mục tiêu nằm ngoài bàn');
     goal.cueZone = { x: round(z.x, 4), y: round(z.y, 4), r: round(clamp(z.r, R, 1), 4) };
   }
-  if (!goal.pot && goal.firstContact == null && !goal.cueZone) fail('Mục tiêu trống');
+  if (raw.cueRails != null) {
+    if (!Number.isInteger(raw.cueRails) || raw.cueRails < 1 || raw.cueRails > 9) fail('Số băng không hợp lệ (phải từ 1 đến 9)');
+    goal.cueRails = raw.cueRails;
+  }
+  if (!goal.pot && goal.firstContact == null && !goal.cueZone && goal.cueRails == null) fail('Mục tiêu trống');
   return goal;
 }
 
