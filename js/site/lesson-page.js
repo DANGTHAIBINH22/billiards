@@ -19,6 +19,22 @@ function pagerLink(node, lesson, prefix) {
 }
 
 let current = null; // { lesson, next, locked }
+const phone = matchMedia('(max-width: 760px)');
+
+/** Desktop embeds the practice table beside the text; a phone opens it full screen. */
+function mountTable() {
+  if (!current || current.locked) return;
+  const q = `?lesson=${encodeURIComponent(current.lesson.id)}`;
+  const framed = !phone.matches;
+  $('stage').hidden = !framed;
+  $('launch').hidden = framed;
+  $('launchLink').href = `/gia-lap/${q}`;
+  $('fullLink').href = `/gia-lap/${q}`;
+  const src = `/gia-lap/${q}&embed=1`;
+  // The lesson file is only requested once the visitor may open it, and the frame only loads where it is shown.
+  if (framed && $('sim').getAttribute('src') !== src) $('sim').src = src;
+}
+phone.addEventListener('change', mountTable);
 
 function paintResult() {
   if (!current || current.locked) return;
@@ -54,15 +70,13 @@ function render(lessons, id) {
   pagerLink($('prev'), prev, '← Bài trước:');
   pagerLink($('next'), next, 'Bài sau:');
 
-  $('stage').hidden = locked;
+  $('stage').hidden = true;
+  $('launch').hidden = true;
   $('lock').hidden = !locked;
   $('howto').hidden = locked;
   $('result').hidden = locked;
   if (!locked) {
-    // The lesson file is only requested once the visitor may open it.
-    const q = `?lesson=${encodeURIComponent(lesson.id)}`;
-    $('sim').src = `/gia-lap/${q}&embed=1`;
-    $('fullLink').href = `/gia-lap/${q}`;
+    mountTable();
     paintResult();
   }
   show('view');

@@ -97,5 +97,12 @@ for (const file of LESSON_FILES) {
     for (const off of [-0.05, 0.05]) {
       assert.equal(play(sc, { ...sc.demo, angle: sc.demo.angle + off }).pass, true, `demo is too close to the edge: fails ${off} deg away`);
     }
+    // The same margin on the other settings a learner copies from the model shot: power and tip position.
+    for (const [key, step] of [['power', 2], ['a', 0.02], ['b', 0.02]]) {
+      for (const sign of [-1, 1]) {
+        const shot = { ...sc.demo, [key]: sc.demo[key] + sign * step };
+        assert.equal(play(sc, shot).pass, true, `demo is too close to the edge: fails at ${key} ${sign > 0 ? '+' : '-'}${step}`);
+      }
+    }
   });
 }

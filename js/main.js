@@ -64,7 +64,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 stage.appendChild(renderer.domElement);
 
-const MAX_ZOOM_OUT = 6; // m, camera distance limit in free play
+const MAX_ZOOM_OUT = 6; // m, camera distance limit when the table already fits
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 40);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -164,9 +164,9 @@ function fitDistance(halfW, halfH) {
 
 function frameView(view) {
   const fit = fitDistance(TABLE.hx + 0.22, TABLE.hy + 0.2);
-  // On a narrow portrait screen the whole table only fits from beyond the free-play limit, and a lesson has to show
-  // its target pocket. Free play keeps its limit.
-  controls.maxDistance = state.lesson ? Math.max(MAX_ZOOM_OUT, fit * 1.2) : MAX_ZOOM_OUT;
+  // On a narrow portrait screen the whole table only fits from beyond the usual limit; without this the table ran
+  // off both sides of a phone and the far pockets could not be seen.
+  controls.maxDistance = Math.max(MAX_ZOOM_OUT, fit * 1.2);
   camera.position.set(0, fit * (view === 'top' ? 1.02 : 0.9), view === 'top' ? 0.0001 : fit * 0.7);
   controls.target.set(0, 0, 0);
   controls.update();
@@ -613,8 +613,8 @@ function renderHud(info) {
   $('hud').hidden = state.lines === 'off';
   const rows = [];
   if (info.hit) {
-    if (state.show.deg) rows.push(['Góc cắt (cut angle)', `${info.absCut.toFixed(1)}°${side(info.cut)}`, true]);
-    if (state.show.cheek) rows.push(['Má bi (thickness)', thicknessLabel(info.thickness), true]);
+    if (state.show.deg) rows.push(['Góc cắt', `${info.absCut.toFixed(1)}°${side(info.cut)}`, true]);
+    if (state.show.cheek) rows.push(['Má bi', thicknessLabel(info.thickness), true]);
     rows.push(['Bi mục tiêu', `bi ${info.object.id}${info.air ? ' (bi nhảy chạm)' : ''}`]);
     rows.push(['Bi mục tiêu đi', `${(info.objExitDir * DEG).toFixed(1)}° · ${info.objExitSpeed.toFixed(2)} m/s`]);
     if (info.cueExitSpeed > 0.02) {
@@ -627,7 +627,7 @@ function renderHud(info) {
     rows.push(['Độ cao tối đa', `${(info.maxHeight * 100).toFixed(1)} cm`]);
     if (info.landing) rows.push(['Hạ cánh sau', `${info.landing.t.toFixed(2)} s`]);
   }
-  $('metrics').innerHTML = rows.map(([k, v, hl]) => `<dt>${k}</dt><dd${hl ? ' class="hl"' : ''}>${v}</dd>`).join('');
+  $('metrics').innerHTML = rows.map(([k, v, hl]) => `<dt${hl ? ' class="hl"' : ''}>${k}</dt><dd${hl ? ' class="hl"' : ''}>${v}</dd>`).join('');
 
   const v = $('verdict');
   v.className = '';
@@ -639,8 +639,8 @@ function renderHud(info) {
 
   const { a, b } = state.shot;
   const tips = [];
-  if (b > 0.05) tips.push('Đẩy (follow): bi cái chạy theo sau khi va chạm.');
-  if (b < -0.05) tips.push('Kéo (draw): bi cái bị kéo lùi sau va chạm.');
+  if (b > 0.05) tips.push('Cule (đẩy): bi cái chạy theo sau khi va chạm.');
+  if (b < -0.05) tips.push('Trô (kéo): bi cái lùi lại sau va chạm.');
   if (Math.abs(a) > 0.05) tips.push(`Phê ${a > 0 ? 'phải' : 'trái'}: bi cái lệch nhẹ khi rời cơ (squirt), làm bi mục tiêu lệch (throw) và đổi góc nảy khi ăn băng.`);
   if (state.jump) tips.push('Gậy nhảy: nâng cơ càng cao bi bay càng cao nhưng ngắn; cần đủ lực để vượt bi cản.');
   $('tips').textContent = tips.join(' ');
@@ -659,17 +659,19 @@ function syncUI() {
   syncBreakPower();
   const pct = (v) => Math.round(Math.abs(v / TIP_LIMIT) * 100);
   const parts = [];
-  parts.push(Math.abs(s.b) < 0.01 ? 'Giữa dọc' : `${s.b > 0 ? 'Đẩy' : 'Kéo'} <b>${pct(s.b)}%</b>`);
+  parts.push(Math.abs(s.b) < 0.01 ? 'Giữa dọc' : `${s.b > 0 ? 'Cule' : 'Trô'} <b>${pct(s.b)}%</b>`);
   parts.push(Math.abs(s.a) < 0.01 ? 'Không phê' : `Phê ${s.a > 0 ? 'phải' : 'trái'} <b>${pct(s.a)}%</b>`);
   $('tipReadout').innerHTML = parts.join('<br>');
   drawTipPad();
 }
 
-/** Break power is on offer while the cue ball is behind the head string facing a pack, as at a break. */
+/** Break power is on offer for a break only: a fresh rack, a match break, or a scenario saved as a break. */
 function syncBreakPower() {
   const cue = state.balls[0];
+  const g = state.game;
   const pack = state.balls.filter((b) => b.active && b.id !== 0).length >= 7;
-  const offered = !state.jump && !!cue?.active && cue.x <= HEAD_STRING_X + 1e-6 && pack;
+  const atBreak = g ? g.ballInHand && g.breakBox : state.practice.breakBox || state.scenario?.shot.breakPower === true;
+  const offered = !state.jump && !!cue?.active && cue.x <= HEAD_STRING_X + 1e-6 && pack && !!atBreak;
   if (!offered && state.breakPower && state.phase === 'aim') { state.breakPower = false; state.dirty = true; }
   $('breakPowerBox').hidden = !offered;
   $('breakPower').checked = state.breakPower;
@@ -797,8 +799,8 @@ function drawTipPad() {
   g.fillStyle = 'rgba(0,0,0,.55)';
   g.font = '600 10px system-ui, sans-serif';
   g.textAlign = 'center';
-  g.fillText('ĐẨY', c, 14);
-  g.fillText('KÉO', c, size - 6);
+  g.fillText('CULE', c, 14);
+  g.fillText('TRÔ', c, size - 6);
   g.fillText('TRÁI', 16, c + 3);
   g.fillText('PHẢI', size - 16, c + 3);
   g.fillStyle = '#2f6fe0';
@@ -1227,6 +1229,10 @@ function renderLesson() {
   // Scenario text is untrusted (share links): text nodes only, never markup.
   $('lessonTitle').textContent = sc.title || 'Bài tập';
   $('lessonPrompt').textContent = sc.prompt;
+  // Opened full screen from a lesson page (phones do this): offer the way back. Embedded, the page is already there.
+  const back = $('lessonBack');
+  back.hidden = !sc.id || document.body.classList.contains('embed');
+  if (sc.id) back.href = `/bai-hoc/?id=${encodeURIComponent(sc.id)}`;
   renderLessonResult(null);
   syncLessonButtons();
 }
@@ -1234,7 +1240,7 @@ function renderLesson() {
 function shotText(s) {
   const pct = (v) => Math.round(Math.abs(v / TIP_LIMIT) * 100);
   const tip = [];
-  if (Math.abs(s.b) >= 0.01) tip.push(`${s.b > 0 ? 'đẩy' : 'kéo'} ${pct(s.b)}%`);
+  if (Math.abs(s.b) >= 0.01) tip.push(`${s.b > 0 ? 'cule' : 'trô'} ${pct(s.b)}%`);
   if (Math.abs(s.a) >= 0.01) tip.push(`phê ${s.a > 0 ? 'phải' : 'trái'} ${pct(s.a)}%`);
   return `Hướng cơ ${s.angle.toFixed(2)}° · Lực ${s.power}% · Điểm chạm: ${tip.join(', ') || 'giữa bi'}`;
 }

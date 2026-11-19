@@ -8,3 +8,4 @@
 | T-004 | [Hai bài học phá 9 bi đầu tiên](T-004_2026-11-19_bai-hoc-pha-9-bi.md) | Done | 2026-11-19 |
 | T-005 | [Lô bài học đứng bi, trô, cule, áp phê, điều bi](T-005_2026-11-19_lo-bai-hoc-dau-co-va-dieu-bi.md) | Done | 2026-11-19 |
 | T-006 | [Trang chính có menu đầy đủ, tách giả lập sang route riêng, dựng sẵn khung thu phí](T-006_2026-11-19_trang-chinh-va-tach-gia-lap.md) | Done | 2026-11-19 |
+| T-007 | [Sổ nợ sau T-001 đến T-006 và phần đã dọn](T-007_2026-11-19_don-no.md) | Done (phần A) | 2026-11-19 |

@@ -116,6 +116,9 @@ a.row:hover { background: var(--surface); }
 .stage iframe { display: block; width: 100%; height: min(78vh, 760px); min-height: 480px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
 .stage-foot { display: flex; justify-content: flex-end; padding-top: var(--space-2); }
 .stage-foot a { color: var(--muted); font-size: var(--text-sm); min-height: var(--tap); display: inline-flex; align-items: center; }
+.launch { padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.launch .btn { width: 100%; }
+.launch .note { margin: var(--space-3) 0 0; }
 .lock { padding: var(--space-6); border: 1px solid var(--accent); border-radius: var(--radius); background: var(--surface); }
 .lock h2 { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
 .lock svg { width: 20px; height: 20px; color: var(--accent); }

@@ -195,3 +195,14 @@ body.lesson #hud { top: calc(26px + var(--lesson-h, 0px)); width: 300px; }
 body.embed #menuBtn, body.embed #homeLink, body.embed #hint { display: none; }
 /* The lesson page already shows the title above the frame. The prompt stays: it is the task itself. */
 body.embed #lessonTitle { display: none; }
+
+/* v6 */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The key hints list things a lesson switches off, and the lesson card says what to do instead. */
+body.lesson #hint { display: none; }
+@media (max-width: 760px) {
+  /* On a phone the analysis card keeps only its two headline numbers; the full table took a third of the screen. */
+  #metrics { grid-template-columns: auto 1fr auto 1fr; align-items: baseline; }
+  #metrics dt:not(.hl), #metrics dd:not(.hl) { display: none; }
+  #metrics dd.hl { text-align: left; font-size: 16px; }
+}
