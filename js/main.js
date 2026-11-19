@@ -9,11 +9,11 @@ import { makeCue, makeJumpCue } from './cue.js';
 import { ribbon, flightLine, arcPoints, disposeGroup } from './draw.js';
 import { buildRack, spotPosition, HEAD_STRING_X, HEAD_SPOT, RACK_KINDS } from './racks.js';
 import { createGame, groupOf, KINDS } from './rules.js';
+import { TIP_LIMIT, LESSON_ID, shotSpeed, validateScenario, decodeScenario, encodeScenario, scenarioFromState, shotToState } from './scenario.js';
+import { POCKET_NAMES, evaluateGoal } from './lesson.js';
 
 const DEG = 180 / Math.PI;
-const TIP_LIMIT = 0.5; // max cue-tip offset, in ball radii (beyond this = miss-cue)
 const $ = (id) => document.getElementById(id);
-const POCKET_NAMES = ['góc dưới-trái', 'góc dưới-phải', 'góc trên-trái', 'góc trên-phải', 'giữa dưới', 'giữa trên'];
 
 // ---------- State ----------
 const state = {
@@ -46,9 +46,11 @@ const state = {
   events: [],
   simT: 0,
   shotCtx: null,
+  scenario: null, // table loaded from a share link or lesson file; "reset" returns to it
+  lesson: null, // { demo, saved } while the scenario has a goal: one graded shot, then retry
 };
 
-const powerToSpeed = (p) => (state.jump ? 0.4 + (p / 100) * 5.1 : 0.4 + (p / 100) * 6.6); // m/s
+const powerToSpeed = (p) => shotSpeed(p, state.jump); // m/s
 
 // ---------- Scene ----------
 const stage = $('stage');
@@ -58,13 +60,14 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 stage.appendChild(renderer.domElement);
 
+const MAX_ZOOM_OUT = 6; // m, camera distance limit in free play
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 40);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enablePan = false;
 controls.enableDamping = true;
 controls.minDistance = 0.8;
-controls.maxDistance = 6;
+controls.maxDistance = MAX_ZOOM_OUT;
 controls.maxPolarAngle = Math.PI * 0.49;
 controls.mouseButtons = { LEFT: -1, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
 controls.touches = { ONE: -1, TWO: THREE.TOUCH.DOLLY_ROTATE };
@@ -105,8 +108,13 @@ callRing.rotation.x = -Math.PI / 2;
 callRing.visible = false;
 scene.add(callRing);
 
+// Lesson targets (pocket to aim for, zone where the cue ball must stop). Unlike `overlay` they stay during the shot.
+const goalMarks = new THREE.Group();
+scene.add(goalMarks);
+
 // ---------- Layout / camera ----------
 const avail = { w: 1, h: 1 }; // part of the viewport not covered by the control panel
+const MIN_TABLE_W = 600; // below this the lesson cards overlap the table rather than shrink it further
 
 function layout() {
   const w = innerWidth;
@@ -118,18 +126,26 @@ function layout() {
   if (w <= 760) {
     const ph = panel.classList.contains('collapsed') ? 0 : pr.height;
     const bottomOf = (id) => ($(id).hidden ? 0 : $(id).getBoundingClientRect().bottom);
-    const top = Math.max(bottomOf('hud'), bottomOf('score'));
+    const top = Math.max(bottomOf('hud'), bottomOf('score'), bottomOf('lesson'));
     Object.assign(avail, { w, h: h - ph - top });
     camera.setViewOffset(w, h, 0, (ph - top) / 2, w, h);
   } else {
-    const cover = pr.width + 32;
-    Object.assign(avail, { w: w - cover, h });
-    camera.setViewOffset(w, h, cover / 2, 0, w, h);
+    const right = pr.width + 32;
+    // A lesson stacks its cards down the left edge: keep the table clear of them when the window is wide enough.
+    const cards = state.lesson ? $('lesson').getBoundingClientRect().right + 16 : 0;
+    const left = w - right - cards >= MIN_TABLE_W ? cards : 0;
+    Object.assign(avail, { w: w - right - left, h });
+    camera.setViewOffset(w, h, (right - left) / 2, 0, w, h);
   }
   camera.updateProjectionMatrix();
 }
 new ResizeObserver(() => layout()).observe($('hud'));
 new ResizeObserver(() => layout()).observe($('score'));
+// The analysis card sits right under the lesson card, whose height depends on the prompt and the result.
+new ResizeObserver(() => {
+  document.body.style.setProperty('--lesson-h', `${$('lesson').offsetHeight}px`);
+  layout();
+}).observe($('lesson'));
 
 function resize() {
   layout();
@@ -144,6 +160,9 @@ function fitDistance(halfW, halfH) {
 
 function frameView(view) {
   const fit = fitDistance(TABLE.hx + 0.22, TABLE.hy + 0.2);
+  // On a narrow portrait screen the whole table only fits from beyond the free-play limit, and a lesson has to show
+  // its target pocket. Free play keeps its limit.
+  controls.maxDistance = state.lesson ? Math.max(MAX_ZOOM_OUT, fit * 1.2) : MAX_ZOOM_OUT;
   camera.position.set(0, fit * (view === 'top' ? 1.02 : 0.9), view === 'top' ? 0.0001 : fit * 0.7);
   controls.target.set(0, 0, 0);
   controls.update();
@@ -217,6 +236,7 @@ function placeRack(kind, seed) {
 
 function setPreset(name, seed = (Math.random() * 1e9) | 0) {
   const corner = { x: TABLE.hx, y: TABLE.hy };
+  leaveScenario();
   state.practice = { preset: name, seed, breakBox: false };
   newBalls();
   if (name.startsWith('rack')) {
@@ -259,6 +279,7 @@ function afterSetup() {
 
 function startMatch({ kind, rack9, names }) {
   const k = Number(kind);
+  leaveScenario();
   state.game = createGame({ kind: k, players: names });
   state.matchRack = k === 8 ? '15' : k === 9 ? rack9 : '10';
   placeRack(state.matchRack, (Math.random() * 1e9) | 0);
@@ -270,6 +291,48 @@ function startMatch({ kind, rack9, names }) {
   document.body.classList.add('match');
   toast(state.game.message);
   afterSetup();
+}
+
+// ---------- Scenarios (share links, lessons) ----------
+function placeScenarioBalls() {
+  newBalls();
+  for (const b of state.scenario.balls) place(b.id, b.x, b.y);
+  state.undo = null;
+}
+
+function loadShot(s) {
+  const st = shotToState(s);
+  state.shot = st.shot;
+  state.jump = st.jump;
+  if (st.elev) state.elev = st.elev;
+}
+
+function applyScenario(sc) {
+  state.scenario = sc;
+  state.lesson = sc.goal ? { demo: false, saved: null } : null;
+  state.practice = { preset: 'custom', seed: 0, breakBox: false };
+  state.game = null;
+  document.body.classList.remove('match');
+  document.body.classList.toggle('lesson', !!state.lesson);
+  placeScenarioBalls();
+  loadShot(sc.shot);
+  if (state.lesson) {
+    state.tool = 'aim';
+    setCheek(false);
+    setLines(sc.lines);
+  }
+  renderLesson();
+  afterSetup();
+  setView(sc.view);
+}
+
+function leaveScenario() {
+  if (!state.scenario) return;
+  state.scenario = null;
+  state.lesson = null;
+  document.body.classList.remove('lesson');
+  renderLesson();
+  resize(); // the table gets the lesson cards' column back
 }
 
 function normalizeAngle() {
@@ -597,10 +660,14 @@ function syncUI() {
 
 function syncModeUI() {
   const match = !!state.game;
-  $('practiceGroup').hidden = match;
-  $('undo').hidden = match;
-  $('reset').hidden = match;
+  const lesson = !!state.lesson;
+  $('practiceGroup').hidden = match || lesson;
+  $('undo').hidden = match || lesson;
+  $('reset').hidden = match || lesson;
   $('score').hidden = !match;
+  // A lesson fixes its own assist level, and the auto-aim buttons would solve a potting drill outright.
+  $('linesGroup').hidden = lesson;
+  $('pocketAim').hidden = lesson;
   document.querySelectorAll('#lines button').forEach((b) => b.classList.toggle('on', b.dataset.lines === state.lines));
   document.querySelectorAll('#presets button').forEach((b) => b.classList.toggle('on', !match && b.dataset.preset === state.practice.preset));
   document.querySelectorAll('#tools button').forEach((b) => b.classList.toggle('on', b.dataset.tool === state.tool));
@@ -816,13 +883,14 @@ el.addEventListener('pointerdown', (e) => {
   const followView = state.view === 'cue' || state.view === 'fps';
 
   if (g && g.ballInHand && p && nearestBall(p, R * 2.2) === state.balls[0]) { drag = { kind: 'ball', id: 0 }; return; }
-  if (!g && p && state.tool === 'move') {
+  const editable = !g && !state.lesson;
+  if (editable && p && state.tool === 'move') {
     const near = nearestBall(p);
     drag = near ? { kind: 'ball', id: near.id } : null;
     return;
   }
-  if (!g && p && state.tool === 'add') { addBallAt(p); return; }
-  if (!g && p && state.tool === 'remove') {
+  if (editable && p && state.tool === 'add') { addBallAt(p); return; }
+  if (editable && p && state.tool === 'remove') {
     const near = nearestBall(p, R * 1.8, false);
     if (near) { near.active = false; syncMeshes(); state.dirty = true; renderAddChips(); }
     return;
@@ -929,7 +997,11 @@ $('thickSide').addEventListener('click', (e) => {
 $('aimPockets').addEventListener('click', (e) => { const p = e.target.closest('button')?.dataset.pocket; if (p !== undefined) applyPocket(Number(p)); });
 $('shoot').addEventListener('click', shoot);
 $('undo').addEventListener('click', undoShot);
-$('reset').addEventListener('click', () => state.phase === 'aim' && setPreset(state.practice.preset, state.practice.seed));
+$('reset').addEventListener('click', () => {
+  if (state.phase !== 'aim') return;
+  if (state.scenario) applyScenario(state.scenario);
+  else setPreset(state.practice.preset, state.practice.seed);
+});
 $('menuBtn').addEventListener('click', () => $('menu').showModal());
 $('winnerBtn').addEventListener('click', () => { $('winner').hidden = true; $('menu').showModal(); });
 $('panelToggle').addEventListener('click', () => {
@@ -956,7 +1028,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyT') setCheek(!state.cheek);
   else if (e.code === 'KeyG') setShow('deg', !state.show.deg);
   else if (e.code === 'KeyM') setShow('cheek', !state.show.cheek);
-  else if (e.code === 'KeyL') setLines({ off: 'aim', aim: 'full', full: 'off' }[state.lines]);
+  else if (e.code === 'KeyL' && !state.lesson) setLines({ off: 'aim', aim: 'full', full: 'off' }[state.lines]);
   else if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(e.code)) setView(['persp', 'top', 'cue', 'fps', 'cheek'][Number(e.code.slice(5)) - 1]);
   else keys.add(e.code);
 });
@@ -977,7 +1049,7 @@ $('menu').addEventListener('close', () => {
   const f = new FormData(menuForm);
   if (f.get('mode') === 'match') {
     startMatch({ kind: f.get('kind'), rack9: f.get('rack9'), names: [f.get('p0') || 'Người chơi 1', f.get('p1') || 'Người chơi 2'] });
-  } else setPreset(state.practice.preset === 'empty' ? 'cut30' : state.practice.preset, state.practice.seed);
+  } else setPreset(['empty', 'custom'].includes(state.practice.preset) ? 'cut30' : state.practice.preset, state.practice.seed);
 });
 
 // ---------- Shot lifecycle ----------
@@ -1009,6 +1081,7 @@ function shoot() {
   $('cutLabel').hidden = true;
   $('callGroup').hidden = true;
   $('pushGroup').hidden = true;
+  syncLessonButtons();
 }
 
 function undoShot() {
@@ -1058,6 +1131,7 @@ async function finishShot() {
   const g = state.game;
   state.practice.breakBox = false;
   if (!g) {
+    if (state.lesson) { finishLessonShot(); return; }
     if (!state.balls[0].active) place(0, HEAD_SPOT.x, 0);
     resumeAim();
     return;
@@ -1094,6 +1168,164 @@ function resumeAim() {
   syncMeshes();
   refreshMatchUI();
   state.dirty = true;
+}
+
+// ---------- Lesson ----------
+function drawGoalMarks(goal) {
+  disposeGroup(goalMarks);
+  if (!goal) return;
+  for (const want of goal.pot || []) {
+    if (want.pocket == null) continue;
+    const p = POCKETS[want.pocket];
+    const ring = ribbon(arcPoints(p.x, p.y, 0.075, 0, Math.PI * 2, 48), { width: 0.009, color: '#f2c14e', y: 0.0065 });
+    ring.material.depthTest = false; // the rails and pocket liner would hide most of it
+    goalMarks.add(ring);
+  }
+  if (goal.cueZone) {
+    const z = goal.cueZone;
+    goalMarks.add(ribbon(arcPoints(z.x, z.y, z.r, 0, Math.PI * 2, 72), { width: 0.005, color: '#6fd3ff', dash: 0.02, y: 0.0032 }));
+  }
+}
+
+function renderLesson() {
+  const sc = state.scenario;
+  const on = !!state.lesson;
+  $('lesson').hidden = !on;
+  drawGoalMarks(on ? sc.goal : null);
+  if (!on) return;
+  // Scenario text is untrusted (share links): text nodes only, never markup.
+  $('lessonTitle').textContent = sc.title || 'Bài tập';
+  $('lessonPrompt').textContent = sc.prompt;
+  renderLessonResult(null);
+  syncLessonButtons();
+}
+
+function shotText(s) {
+  const pct = (v) => Math.round(Math.abs(v / TIP_LIMIT) * 100);
+  const tip = [];
+  if (Math.abs(s.b) >= 0.01) tip.push(`${s.b > 0 ? 'đẩy' : 'kéo'} ${pct(s.b)}%`);
+  if (Math.abs(s.a) >= 0.01) tip.push(`phê ${s.a > 0 ? 'phải' : 'trái'} ${pct(s.a)}%`);
+  return `Hướng cơ ${s.angle.toFixed(2)}° · Lực ${s.power}% · Điểm chạm: ${tip.join(', ') || 'giữa bi'}`;
+}
+
+function renderLessonResult(res) {
+  $('lessonResult').hidden = !res;
+  if (!res) return;
+  const demo = state.lesson.demo;
+  const v = $('lessonVerdict');
+  v.textContent = demo ? 'Cú mẫu' : res.pass ? 'Đạt' : 'Chưa đạt';
+  v.className = demo ? '' : res.pass ? 'ok' : 'bad';
+  $('lessonChecks').replaceChildren(...res.checks.map((c) => {
+    const li = document.createElement('li');
+    li.className = c.ok ? 'ok' : 'bad';
+    li.textContent = `${c.ok ? '✓' : '✗'} ${c.text}`;
+    return li;
+  }));
+  $('lessonNote').textContent = demo ? shotText(state.scenario.demo) : '';
+}
+
+function syncLessonButtons() {
+  if (!state.lesson) return;
+  const aiming = state.phase === 'aim';
+  const done = state.phase === 'modal';
+  $('lessonShoot').hidden = done;
+  $('lessonShoot').disabled = !aiming;
+  $('lessonRetry').hidden = !done;
+  $('lessonDemo').hidden = !state.scenario.demo;
+  $('lessonDemo').disabled = !aiming && !done;
+}
+
+// A lesson is one graded shot. The balls stay where they stopped so the result can be read off the table.
+function finishLessonShot() {
+  state.phase = 'modal';
+  renderLessonResult(evaluateGoal(state.scenario.goal, state.events, state.balls));
+  syncLessonButtons();
+}
+
+function retryLesson() {
+  const ls = state.lesson;
+  if (!ls || state.phase !== 'modal') return;
+  // After a demo the learner gets their own settings back, to adjust them rather than start over.
+  if (ls.saved) Object.assign(state, ls.saved);
+  ls.saved = null;
+  ls.demo = false;
+  placeScenarioBalls();
+  renderLessonResult(null);
+  afterSetup();
+  syncLessonButtons();
+}
+
+function playDemo() {
+  const ls = state.lesson;
+  const sc = state.scenario;
+  if (!ls || !sc.demo || (state.phase !== 'aim' && state.phase !== 'modal')) return;
+  if (!ls.saved) ls.saved = { shot: { ...state.shot }, jump: state.jump, elev: state.elev };
+  ls.demo = true;
+  placeScenarioBalls();
+  loadShot(sc.demo);
+  renderLessonResult(null);
+  afterSetup();
+  shoot();
+}
+
+$('lessonShoot').addEventListener('click', shoot);
+$('lessonRetry').addEventListener('click', retryLesson);
+$('lessonDemo').addEventListener('click', playDemo);
+
+// ---------- Share / load ----------
+async function shareTable() {
+  if (state.phase !== 'aim') return;
+  let sc;
+  try {
+    sc = scenarioFromState(state.balls, state.shot, state.jump, state.elev);
+  } catch (err) {
+    toast(err.message);
+    return;
+  }
+  const url = new URL(location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('s', encodeScenario(sc));
+  try {
+    await navigator.clipboard.writeText(url.href);
+    toast('Đã copy link thế bi');
+  } catch {
+    // No clipboard on plain http or inside some iframes: let the user copy it by hand.
+    $('shareUrl').value = url.href;
+    $('shareBox').showModal();
+    $('shareUrl').select();
+  }
+}
+$('share').addEventListener('click', shareTable);
+
+const LESSON_TIMEOUT = 8000;
+async function fetchLesson(id) {
+  if (!LESSON_ID.test(id)) throw new Error('Mã bài học không hợp lệ');
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), LESSON_TIMEOUT);
+  let raw;
+  try {
+    const res = await fetch(`lessons/${id}.json`, { signal: ctl.signal });
+    if (!res.ok) throw new Error('missing');
+    // The server answers unknown paths with index.html (status 200), so a missing lesson only shows up here.
+    raw = await res.json();
+  } catch (err) {
+    throw new Error(err.name === 'AbortError' ? 'Tải bài học quá lâu, hãy thử lại' : 'Không tìm thấy bài học');
+  } finally {
+    clearTimeout(timer);
+  }
+  return validateScenario(raw);
+}
+
+/** Scenario named by the page URL, or null (with a toast) when it cannot be loaded. */
+async function scenarioFromUrl(query) {
+  try {
+    if (query.has('s')) return decodeScenario(query.get('s'));
+    return await fetchLesson(query.get('lesson'));
+  } catch (err) {
+    toast(err.message, 6000);
+    return null;
+  }
 }
 
 const SIM_DT = 1 / 480;
@@ -1212,7 +1444,9 @@ resize();
 setView('persp');
 syncMenu();
 requestAnimationFrame(tick);
-if (!new URLSearchParams(location.search).has('nomenu')) $('menu').showModal();
+const query = new URLSearchParams(location.search);
+if (query.has('s') || query.has('lesson')) scenarioFromUrl(query).then((sc) => sc && applyScenario(sc));
+else if (!query.has('nomenu')) $('menu').showModal();
 
 // Test / debugging hook.
-window.__billiards = { setShow, applyThickness, applyPocket, cheekAt, setCheek, state, setPreset, startMatch, shoot, setTip, setView, setLines, camera, controls, POCKETS, RACK_KINDS, groupOf };
+window.__billiards = { applyScenario, retryLesson, playDemo, shareTable, setShow, applyThickness, applyPocket, cheekAt, setCheek, state, setPreset, startMatch, shoot, setTip, setView, setLines, camera, controls, POCKETS, RACK_KINDS, groupOf };

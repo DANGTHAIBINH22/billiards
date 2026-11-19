@@ -33,7 +33,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: azureuser
           key: ${{ secrets.VM_SSH_KEY }}
-          source: "index.html,css,js,vendor,Dockerfile,nginx.conf,docker-compose.yml"
+          source: "index.html,css,js,lessons,vendor,Dockerfile,nginx.conf,docker-compose.yml"
           target: /home/azureuser/billiards
           rm: true
 

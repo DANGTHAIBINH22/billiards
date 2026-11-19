@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "cat-30",
+  "title": "Cắt 30° vào lỗ góc",
+  "prompt": "Bi 1 không thẳng hàng với lỗ. Hãy ngắm lệch khỏi tâm bi 1 để cắt nó vào lỗ góc trên-phải. Gợi ý: má bi khoảng 1/2.",
+  "balls": [
+    { "id": 0, "x": 0.626, "y": -0.269 },
+    { "id": 1, "x": 0.8, "y": 0.2 }
+  ],
+  "shot": { "angle": 69.65, "power": 35, "a": 0, "b": 0 },
+  "demo": { "angle": 73.09, "power": 35, "a": 0, "b": 0 },
+  "goal": { "pot": [{ "ball": 1, "pocket": 3 }], "firstContact": 1, "noScratch": true },
+  "lines": "aim",
+  "view": "persp"
+}

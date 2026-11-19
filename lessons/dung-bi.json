@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "id": "dung-bi",
+  "title": "Dừng bi tại chỗ (stop shot)",
+  "prompt": "Đưa bi 1 vào lỗ góc trên-phải và cho bi cái dừng ngay tại chỗ bi 1 đang nằm (vòng tròn trên bàn). Hướng cơ đã đúng sẵn: hãy hạ điểm chạm đầu cơ xuống dưới tâm một chút.",
+  "balls": [
+    { "id": 0, "x": 0.358, "y": -0.059 },
+    { "id": 1, "x": 0.8, "y": 0.28 }
+  ],
+  "shot": { "angle": 37.67, "power": 45, "a": 0, "b": 0 },
+  "demo": { "angle": 37.67, "power": 45, "a": 0, "b": -0.08 },
+  "goal": {
+    "pot": [{ "ball": 1, "pocket": 3 }],
+    "cueZone": { "x": 0.8, "y": 0.28, "r": 0.1 },
+    "noScratch": true
+  },
+  "lines": "aim",
+  "view": "persp"
+}

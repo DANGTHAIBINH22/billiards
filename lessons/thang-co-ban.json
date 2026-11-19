@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "thang-co-ban",
+  "title": "Đánh thẳng vào lỗ góc",
+  "prompt": "Đưa bi 1 vào lỗ góc trên-phải. Kéo trên mặt bàn để chỉnh hướng cơ sao cho đường ngắm đi qua tâm bi 1, đánh vào giữa bi cái.",
+  "balls": [
+    { "id": 0, "x": 0.455, "y": -0.018 },
+    { "id": 1, "x": 0.85, "y": 0.3 }
+  ],
+  "shot": { "angle": 36, "power": 30, "a": 0, "b": 0 },
+  "demo": { "angle": 38.99, "power": 30, "a": 0, "b": 0 },
+  "goal": { "pot": [{ "ball": 1, "pocket": 3 }], "noScratch": true },
+  "lines": "aim",
+  "view": "persp"
+}

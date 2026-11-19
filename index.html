@@ -21,6 +21,22 @@
     <p id="scoreMsg"></p>
   </section>
 
+  <!-- Lesson card (scenario with a goal) -->
+  <section id="lesson" class="card" hidden aria-live="polite">
+    <h2 id="lessonTitle"></h2>
+    <p id="lessonPrompt"></p>
+    <div id="lessonResult" hidden>
+      <p id="lessonVerdict"></p>
+      <ul id="lessonChecks"></ul>
+      <p id="lessonNote"></p>
+    </div>
+    <div class="actions two">
+      <button id="lessonShoot" class="primary">Bắn</button>
+      <button id="lessonRetry" class="primary" hidden>Thử lại</button>
+      <button id="lessonDemo">Xem cú mẫu</button>
+    </div>
+  </section>
+
   <section id="hud" class="card" aria-live="polite">
     <h2>Phân tích cú đánh</h2>
     <dl id="metrics"></dl>
@@ -94,15 +110,17 @@
       </div>
       <label for="thick">Má bi <output id="thickOut"></output></label>
       <input id="thick" type="range" min="3" max="100" step="1" value="50">
-      <h3>Ngắm bi mục tiêu vào lỗ</h3>
-      <div class="pockets" id="aimPockets">
-        <button data-pocket="2">Góc T-trái</button><button data-pocket="5">Giữa trên</button><button data-pocket="3">Góc T-phải</button>
-        <button data-pocket="0">Góc D-trái</button><button data-pocket="4">Giữa dưới</button><button data-pocket="1">Góc D-phải</button>
+      <div class="group" id="pocketAim">
+        <h3>Ngắm bi mục tiêu vào lỗ</h3>
+        <div class="pockets" id="aimPockets">
+          <button data-pocket="2">Góc T-trái</button><button data-pocket="5">Giữa trên</button><button data-pocket="3">Góc T-phải</button>
+          <button data-pocket="0">Góc D-trái</button><button data-pocket="4">Giữa dưới</button><button data-pocket="1">Góc D-phải</button>
+        </div>
       </div>
       <p class="note">Góc ↔ má: 0° = 1/1 · 15° ≈ 3/4 · 30° = 1/2 · 49° ≈ 1/4 · 60° ≈ 1/8</p>
     </div>
 
-    <div class="group">
+    <div class="group" id="linesGroup">
       <h3>Đường bi</h3>
       <div class="seg" id="lines" role="group">
         <button data-lines="off">Tắt</button>
@@ -142,6 +160,7 @@
         <button data-tool="remove">Nhặt bi</button>
       </div>
       <div class="chips" id="addChips" hidden></div>
+      <button id="share">Chia sẻ thế bi (copy link)</button>
     </div>
 
     <div class="group" id="pushGroup" hidden>
@@ -195,6 +214,15 @@
         <button value="a" class="primary" id="choiceA"></button>
         <button value="b" id="choiceB"></button>
       </div>
+    </form>
+  </dialog>
+
+  <!-- Share link, shown only when the clipboard is unavailable -->
+  <dialog id="shareBox">
+    <form method="dialog">
+      <h2>Link thế bi</h2>
+      <input type="text" id="shareUrl" readonly aria-label="Link thế bi">
+      <button class="primary">Đóng</button>
     </form>
   </dialog>
 
