@@ -2,6 +2,7 @@
 // 2D frame: x along table length, y along width, z up (right-handed).
 // Ball-cloth model after Alciatore ("TP A-4", "TP A-5"): sliding friction until
 // contact-point velocity u = v + w x r reaches zero, then rolling.
+import { resolveContact } from './contact.js';
 
 export const R = 0.028575; // ball radius
 export const G = 9.81;
@@ -12,7 +13,14 @@ export const PARAMS = {
   muRoll: 0.015, // rolling resistance
   spinDecay: 15, // rad/s^2 decay of vertical (side) spin
   eBall: 0.95, // ball-ball restitution
-  muBall: 0.05, // ball-ball friction (throw)
+  // Ball-ball friction mu = (A + B * exp(-C * slip speed)) * scale. A, B, C: Alciatore's fit (TP A-14).
+  muBallA: 0.00995,
+  muBallB: 0.108,
+  muBallC: 1.088,
+  muBallScale: 1,
+  kHertz: 4.86e8, // N/m^1.5, Hertz stiffness of two phenolic balls (E = 5.4 GPa, nu = 0.34)
+  contactDt: 2e-6, // s, step of the contact simulation (a two-ball contact lasts about 0.3 ms)
+  contactMax: 0.02, // s, safety limit on one contact window
   eCushion: 0.8,
   muCushionW: 0.14, // ball-cushion friction (english changes rebound angle)
   ballMass: 0.17, // kg
@@ -151,6 +159,7 @@ function advance(b, dt, events, tNow) {
   b.wz = Math.abs(b.wz) <= dw ? 0 : b.wz - Math.sign(b.wz) * dw;
 }
 
+// Impulse collision, used only while one of the two balls is in the air (jump shots).
 function collideBalls(A, B, events, t) {
   const dx = B.x - A.x;
   const dy = B.y - A.y;
@@ -174,21 +183,6 @@ function collideBalls(A, B, events, t) {
   B.vx += J * nx;
   B.vy += J * ny;
   B.vz += J * nz;
-
-  if (grounded) {
-    // Throw: friction along the contact tangent, driven by relative slip + side spin.
-    const tx = -ny;
-    const ty = nx;
-    const slip = (before.ax - before.bx) * tx + (before.ay - before.by) * ty + R * (A.wz + B.wz);
-    const Jt = Math.min(PARAMS.muBall * J, Math.abs(slip) / 7);
-    const s = Math.sign(slip);
-    A.vx -= s * Jt * tx;
-    A.vy -= s * Jt * ty;
-    B.vx += s * Jt * tx;
-    B.vy += s * Jt * ty;
-    A.wz -= (2.5 * s * Jt) / R;
-    B.wz -= (2.5 * s * Jt) / R;
-  }
 
   // Resolve overlap.
   const push = (2 * R - d) / 2;
@@ -297,25 +291,98 @@ function bounceOffKnuckles(b, events, t) {
   }
 }
 
-export function stepWorld(balls, dt, events, t = 0) {
-  for (const b of balls) if (b.active) advance(b, dt, events, t);
+const MAX_TRAVEL = 0.01; // m a ball may move between boundary checks (a 10 m/s break covers 21 mm per 1/480 s)
+const MAX_CONTACTS = 64; // contact windows per step before giving up on finding more
+const MIN_APPROACH = 1e-3; // m/s: touching balls closing slower than this are resting, not colliding
 
-  for (let pass = 0; pass < 2; pass++) {
-    for (let i = 0; i < balls.length; i++) {
-      const A = balls[i];
-      if (!A.active) continue;
-      for (let j = i + 1; j < balls.length; j++) {
-        const B = balls[j];
-        if (B.active) collideBalls(A, B, events, t);
+const onCloth = (b) => b.active && b.z === 0 && b.vz === 0;
+
+/** Earliest moment within `span` at which two balls on the cloth touch, taking their motion as straight. */
+function nextContact(balls, span) {
+  let best = null;
+  for (let i = 0; i < balls.length; i++) {
+    const A = balls[i];
+    if (!onCloth(A)) continue;
+    for (let j = i + 1; j < balls.length; j++) {
+      const B = balls[j];
+      if (!onCloth(B)) continue;
+      const px = B.x - A.x;
+      const py = B.y - A.y;
+      const wx = B.vx - A.vx;
+      const wy = B.vy - A.vy;
+      const pw = px * wx + py * wy;
+      if (pw >= 0) continue; // not closing
+      const d2 = px * px + py * py;
+      const c = d2 - 4 * R * R;
+      let tau = 0;
+      if (c <= 0) {
+        if (-pw / Math.sqrt(d2) < MIN_APPROACH) continue;
+      } else {
+        const a = wx * wx + wy * wy;
+        const disc = pw * pw - a * c;
+        if (disc < 0) continue;
+        tau = (-pw - Math.sqrt(disc)) / a;
+        if (tau > span) continue;
       }
+      if (!best || tau < best.tau) best = { tau, i, j };
     }
   }
+  return best;
+}
 
-  // The cloth absorbs any downward velocity left over from a collision.
-  for (const b of balls) if (b.z === 0 && b.vz < 0) b.vz = 0;
+function contactWindow(balls, hit, events, t) {
+  const contacts = resolveContact(balls, hit.i, hit.j, {
+    R,
+    mass: PARAMS.ballMass,
+    k: PARAMS.kHertz,
+    e: PARAMS.eBall,
+    muA: PARAMS.muBallA,
+    muB: PARAMS.muBallB,
+    muC: PARAMS.muBallC,
+    muScale: PARAMS.muBallScale,
+    dt: PARAMS.contactDt,
+    tMax: PARAMS.contactMax,
+  });
+  if (!events) return;
+  for (const c of contacts) events.push({ type: 'ball', t, a: c.a, b: c.b, ax: c.ax, ay: c.ay, bx: c.bx, by: c.by, air: false, before: c.before, after: c.after });
+}
 
+/**
+ * Straight cushion: put the ball back on the nose line at the point where it really crossed it, bounce it there,
+ * then give it back the time it spent beyond the line. Without this the rebound point drifts with the step size.
+ */
+function rails(b, span, events, t) {
   const lx = TABLE.hx - R;
   const ly = TABLE.hy - R;
+  if (Math.abs(b.x) > lx) {
+    const s = Math.sign(b.x);
+    const vn = s * b.vx;
+    const tau = vn > 1e-9 ? Math.min((Math.abs(b.x) - lx) / vn, span) : 0;
+    const y0 = b.y - b.vy * tau;
+    if (Math.abs(y0) < TABLE.hy - CORNER_K) {
+      b.x = s * lx;
+      b.y = y0;
+      cushion(b, -s, 0, events, t);
+      b.x += b.vx * tau;
+      b.y += b.vy * tau;
+    }
+  }
+  if (Math.abs(b.y) > ly) {
+    const s = Math.sign(b.y);
+    const vn = s * b.vy;
+    const tau = vn > 1e-9 ? Math.min((Math.abs(b.y) - ly) / vn, span) : 0;
+    const x0 = Math.abs(b.x - b.vx * tau);
+    if (x0 > SIDE_K && x0 < TABLE.hx - CORNER_K) {
+      b.x -= b.vx * tau;
+      b.y = s * ly;
+      cushion(b, 0, -s, events, t);
+      b.x += b.vx * tau;
+      b.y += b.vy * tau;
+    }
+  }
+}
+
+function boundaries(balls, span, events, t) {
   for (const b of balls) {
     if (!b.active) continue;
     for (const p of POCKETS) {
@@ -338,16 +405,41 @@ export function stepWorld(balls, dt, events, t = 0) {
     }
     bounceOffKnuckles(b, events, t);
     // Cushion segments exist only between the knuckles; inside a pocket mouth the ball runs on to the hole.
-    const ax = Math.abs(b.x);
-    const ay = Math.abs(b.y);
-    if (ay < TABLE.hy - CORNER_K) {
-      if (b.x > lx) { b.x = lx; cushion(b, -1, 0, events, t); }
-      else if (b.x < -lx) { b.x = -lx; cushion(b, 1, 0, events, t); }
+    rails(b, span, events, t);
+  }
+}
+
+/**
+ * Advance the table by dt. The step is cut at every moment two balls on the cloth touch, so a collision is
+ * resolved at the real point of contact whatever dt is, and into chunks short enough that a fast ball cannot
+ * skip a cushion or pocket check.
+ */
+export function stepWorld(balls, dt, events, t = 0) {
+  let left = dt;
+  let now = t;
+  let windows = 0;
+  while (left > 1e-12) {
+    let vmax = 0;
+    for (const b of balls) if (b.active) vmax = Math.max(vmax, Math.hypot(b.vx, b.vy));
+    let span = vmax * left > MAX_TRAVEL ? MAX_TRAVEL / vmax : left;
+    const hit = windows < MAX_CONTACTS ? nextContact(balls, span) : null;
+    if (hit) span = hit.tau;
+    if (span > 0) for (const b of balls) if (b.active) advance(b, span, events, now);
+    now += span;
+    left -= span;
+    if (hit) { windows++; contactWindow(balls, hit, events, now); }
+
+    for (let i = 0; i < balls.length; i++) {
+      const A = balls[i];
+      if (!A.active) continue;
+      for (let j = i + 1; j < balls.length; j++) {
+        const B = balls[j];
+        if (B.active && !(onCloth(A) && onCloth(B))) collideBalls(A, B, events, now);
+      }
     }
-    if (ax > SIDE_K && ax < TABLE.hx - CORNER_K) {
-      if (b.y > ly) { b.y = ly; cushion(b, 0, -1, events, t); }
-      else if (b.y < -ly) { b.y = -ly; cushion(b, 0, 1, events, t); }
-    }
+    // The cloth absorbs any downward velocity left over from a collision.
+    for (const b of balls) if (b.z === 0 && b.vz < 0) b.vz = 0;
+    boundaries(balls, span, events, now);
   }
 }
 

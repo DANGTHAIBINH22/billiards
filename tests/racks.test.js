@@ -49,6 +49,6 @@ test('10-ball: 1 apex, 10 centre, 2 and 3 in the back corners', () => {
   assert.equal(byId(r, 1).x, FOOT_SPOT.x);
   assert.ok(Math.abs(byId(r, 10).y) < 1e-9);
   const back = r.filter((b) => Math.abs(b.x - byId(r, 2).x) < 1e-9).map((b) => b.id).sort();
-  assert.deepEqual([byId(r, 2).y, byId(r, 3).y].map(Math.abs).every((y) => y > 3 * R), true);
+  assert.deepEqual([byId(r, 2).y, byId(r, 3).y].map(Math.abs).every((y) => y > 3 * R - 1e-9), true);
   assert.equal(back.length, 4);
 });

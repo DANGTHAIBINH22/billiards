@@ -104,4 +104,19 @@ test('scenario shot <-> app shot conversion keeps the jump cue', () => {
 test('shotSpeed matches the power slider range', () => {
   assert.ok(Math.abs(shotSpeed(100) - 7) < 1e-9);
   assert.ok(Math.abs(shotSpeed(100, true) - 5.5) < 1e-9);
+  assert.ok(Math.abs(shotSpeed(100, false, true) - 10.5) < 1e-9);
+  assert.ok(Math.abs(shotSpeed(1, false, true) - shotSpeed(1)) < 0.05, 'the soft end barely moves');
+});
+
+test('break power travels with a scenario shot, and is absent unless set', () => {
+  const plain = validateScenario(base());
+  assert.equal('breakPower' in plain.shot, false);
+  const brk = validateScenario({ ...base(), shot: { angle: 0, power: 90, breakPower: true } });
+  assert.equal(brk.shot.breakPower, true);
+  assert.deepEqual(decodeScenario(encodeScenario(brk)), brk);
+  assert.equal(shotToState(brk.shot).breakPower, true);
+  assert.equal(shotToState(plain.shot).breakPower, false);
+  assert.equal('breakPower' in validateScenario({ ...base(), shot: { elev: 30, breakPower: true } }).shot, false, 'a jump shot is never a break');
+  const live = scenarioFromState([Object.assign(createBall(0), { x: 0, y: 0 })], { angle: 0, power: 80, a: 0, b: 0 }, false, 0, true);
+  assert.equal(live.shot.breakPower, true);
 });

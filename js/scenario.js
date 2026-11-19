@@ -14,8 +14,15 @@ const POS_EPS = 1e-4; // tolerates the rounding of shared positions (racked ball
 const LINES = ['off', 'aim', 'full'];
 const VIEWS = ['persp', 'top', 'cue', 'fps', 'cheek'];
 
-/** Cue-ball launch speed (m/s) for a power setting of 1-100. */
-export const shotSpeed = (power, jump = false) => (jump ? 0.4 + (power / 100) * 5.1 : 0.4 + (power / 100) * 6.6);
+const TOP_SPEED = 7; // m/s at 100% for an ordinary shot
+const TOP_SPEED_JUMP = 5.5;
+const TOP_SPEED_BREAK = 10.5; // a firm break; ordinary shots keep their finer scale
+
+/** Cue-ball launch speed (m/s) for a power setting of 1-100. `breakPower` stretches the scale for a break shot. */
+export function shotSpeed(power, jump = false, breakPower = false) {
+  const top = jump ? TOP_SPEED_JUMP : breakPower ? TOP_SPEED_BREAK : TOP_SPEED;
+  return 0.4 + (power / 100) * (top - 0.4);
+}
 
 const fail = (msg) => { throw new Error(msg); };
 const num = (v, fallback) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
@@ -35,13 +42,16 @@ function normalizeShot(raw) {
   const m = Math.hypot(a, b);
   if (m > TIP_LIMIT) { a *= TIP_LIMIT / m; b *= TIP_LIMIT / m; }
   const elev = num(s.elev, 0);
-  return {
+  const shot = {
     angle: round(angle, 3),
     power: Math.round(clamp(num(s.power, 35), 1, 100)),
     a: round(a, 3),
     b: round(b, 3),
     elev: elev > 0 ? Math.round(clamp(elev, 10, 60)) : 0,
   };
+  // Only present when set, so scenarios written before break power existed stay byte-identical.
+  if (s.breakPower === true && shot.elev === 0) shot.breakPower = true;
+  return shot;
 }
 
 function normalizeBalls(raw) {
@@ -112,17 +122,17 @@ export function validateScenario(raw) {
 }
 
 /** Scenario of the live table. `shot` uses the app's units (angle and elev in radians). */
-export function scenarioFromState(balls, shot, jump, elev) {
+export function scenarioFromState(balls, shot, jump, elev, breakPower = false) {
   return validateScenario({
     v: SCENARIO_VERSION,
     balls: balls.filter((b) => b.active).map((b) => ({ id: b.id, x: b.x, y: b.y })),
-    shot: { angle: shot.angle * DEG, power: shot.power, a: shot.a, b: shot.b, elev: jump ? elev * DEG : 0 },
+    shot: { angle: shot.angle * DEG, power: shot.power, a: shot.a, b: shot.b, elev: jump ? elev * DEG : 0, breakPower },
   });
 }
 
 /** App-side shot settings (radians) from a scenario shot (degrees). */
 export function shotToState(s) {
-  return { shot: { angle: s.angle / DEG, power: s.power, a: s.a, b: s.b }, jump: s.elev > 0, elev: s.elev > 0 ? s.elev / DEG : null };
+  return { shot: { angle: s.angle / DEG, power: s.power, a: s.a, b: s.b }, jump: s.elev > 0, elev: s.elev > 0 ? s.elev / DEG : null, breakPower: s.breakPower === true };
 }
 
 /** base64url of the compact JSON, for the ?s= share link. */

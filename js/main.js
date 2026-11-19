@@ -46,11 +46,12 @@ const state = {
   events: [],
   simT: 0,
   shotCtx: null,
+  breakPower: false, // power slider reaches break speed; offered only for a break and cleared after the shot
   scenario: null, // table loaded from a share link or lesson file; "reset" returns to it
   lesson: null, // { demo, saved } while the scenario has a goal: one graded shot, then retry
 };
 
-const powerToSpeed = (p) => shotSpeed(p, state.jump); // m/s
+const powerToSpeed = (p) => shotSpeed(p, state.jump, state.breakPower); // m/s
 
 // ---------- Scene ----------
 const stage = $('stage');
@@ -305,6 +306,7 @@ function loadShot(s) {
   state.shot = st.shot;
   state.jump = st.jump;
   if (st.elev) state.elev = st.elev;
+  state.breakPower = st.breakPower;
 }
 
 function applyScenario(sc) {
@@ -650,12 +652,23 @@ function syncUI() {
   $('elevOut').textContent = `${Math.round(state.elev * DEG)}°`;
   $('jumpCue').checked = state.jump;
   $('jumpBox').hidden = !state.jump;
+  syncBreakPower();
   const pct = (v) => Math.round(Math.abs(v / TIP_LIMIT) * 100);
   const parts = [];
   parts.push(Math.abs(s.b) < 0.01 ? 'Giữa dọc' : `${s.b > 0 ? 'Đẩy' : 'Kéo'} <b>${pct(s.b)}%</b>`);
   parts.push(Math.abs(s.a) < 0.01 ? 'Không phê' : `Phê ${s.a > 0 ? 'phải' : 'trái'} <b>${pct(s.a)}%</b>`);
   $('tipReadout').innerHTML = parts.join('<br>');
   drawTipPad();
+}
+
+/** Break power is on offer while the cue ball is behind the head string facing a pack, as at a break. */
+function syncBreakPower() {
+  const cue = state.balls[0];
+  const pack = state.balls.filter((b) => b.active && b.id !== 0).length >= 7;
+  const offered = !state.jump && !!cue?.active && cue.x <= HEAD_STRING_X + 1e-6 && pack;
+  if (!offered && state.breakPower && state.phase === 'aim') { state.breakPower = false; state.dirty = true; }
+  $('breakPowerBox').hidden = !offered;
+  $('breakPower').checked = state.breakPower;
 }
 
 function syncModeUI() {
@@ -948,6 +961,7 @@ $('power').addEventListener('input', (e) => { state.shot.power = Number(e.target
 $('horizon').addEventListener('input', (e) => { state.horizon = Number(e.target.value); syncUI(); state.dirty = true; });
 $('elev').addEventListener('input', (e) => { state.elev = Number(e.target.value) / DEG; syncUI(); state.dirty = true; });
 $('jumpCue').addEventListener('change', (e) => { state.jump = e.target.checked; syncUI(); state.dirty = true; });
+$('breakPower').addEventListener('change', (e) => { state.breakPower = e.target.checked; syncUI(); state.dirty = true; });
 $('slowmo').addEventListener('change', (e) => (state.slowmo = e.target.checked));
 $('tipPresets').addEventListener('click', (e) => {
   const t = e.target.closest('button')?.dataset.tip;
@@ -1130,6 +1144,7 @@ function placeCueAfterFoul(res) {
 async function finishShot() {
   const g = state.game;
   state.practice.breakBox = false;
+  state.breakPower = false;
   if (!g) {
     if (state.lesson) { finishLessonShot(); return; }
     if (!state.balls[0].active) place(0, HEAD_SPOT.x, 0);
@@ -1247,6 +1262,7 @@ function retryLesson() {
   if (!ls || state.phase !== 'modal') return;
   // After a demo the learner gets their own settings back, to adjust them rather than start over.
   if (ls.saved) Object.assign(state, ls.saved);
+  else state.breakPower = state.scenario.shot.breakPower === true; // a break lesson stays a break on every try
   ls.saved = null;
   ls.demo = false;
   placeScenarioBalls();
@@ -1259,7 +1275,7 @@ function playDemo() {
   const ls = state.lesson;
   const sc = state.scenario;
   if (!ls || !sc.demo || (state.phase !== 'aim' && state.phase !== 'modal')) return;
-  if (!ls.saved) ls.saved = { shot: { ...state.shot }, jump: state.jump, elev: state.elev };
+  if (!ls.saved) ls.saved = { shot: { ...state.shot }, jump: state.jump, elev: state.elev, breakPower: state.breakPower };
   ls.demo = true;
   placeScenarioBalls();
   loadShot(sc.demo);
@@ -1277,7 +1293,7 @@ async function shareTable() {
   if (state.phase !== 'aim') return;
   let sc;
   try {
-    sc = scenarioFromState(state.balls, state.shot, state.jump, state.elev);
+    sc = scenarioFromState(state.balls, state.shot, state.jump, state.elev, state.breakPower);
   } catch (err) {
     toast(err.message);
     return;
@@ -1384,6 +1400,7 @@ function tick() {
       );
       drawOverlay(state.pending);
       renderHud(state.pending.info);
+      syncBreakPower(); // the cue ball may have been dragged out of the kitchen
       updateCallUI();
       state.dirty = false;
     }

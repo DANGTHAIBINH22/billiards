@@ -11,7 +11,7 @@ const RAD = Math.PI / 180;
 // Same strike the app performs for a scenario shot.
 function play(sc, shot) {
   const balls = sc.balls.map((b) => createBall(b.id, b.x, b.y));
-  strike(balls.find((b) => b.id === 0), shot.angle * RAD, shotSpeed(shot.power, shot.elev > 0), shot.a, shot.b, shot.elev * RAD);
+  strike(balls.find((b) => b.id === 0), shot.angle * RAD, shotSpeed(shot.power, shot.elev > 0, shot.breakPower === true), shot.a, shot.b, shot.elev * RAD);
   const sim = simulate(balls, { tMax: 30 });
   return evaluateGoal(sc.goal, sim.events, sim.final);
 }

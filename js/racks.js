@@ -5,7 +5,7 @@ import { R, TABLE } from './physics.js';
 export const FOOT_SPOT = { x: TABLE.hx / 2, y: 0 };
 export const HEAD_STRING_X = -TABLE.hx / 2; // break box = everything behind this line
 
-const GAP = 2 * R * 1.0005; // balls nearly touching so the rack is tight
+const GAP = 2 * R; // frozen rack: every ball touches its neighbours
 const ROW = (GAP * Math.sqrt(3)) / 2;
 
 export const RACK_KINDS = {
